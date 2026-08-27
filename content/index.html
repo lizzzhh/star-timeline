@@ -2992,8 +2992,11 @@
                 renderTimeline();
             });
 
-            overlay.addEventListener('click', function (e) {
-                if (e.target === this) closeExpand();
+            overlay.addEventListener('mousedown', function (e) {
+                overlay._downOnSelf = (e.target === this);
+            });
+            overlay.addEventListener('mouseup', function (e) {
+                if (overlay._downOnSelf && e.target === this) closeExpand();
             });
             overlay.addEventListener('touchmove', function (e) {
                 if (e.target === this) e.preventDefault();
@@ -3017,8 +3020,11 @@
                 e.stopPropagation();
                 if (currentMemberId != null) openEditModal(currentMemberId);
             });
-            editModal.addEventListener('click', function (e) {
-                if (e.target === this) closeEditModal();
+            editModal.addEventListener('mousedown', function (e) {
+                editModal._downOnSelf = (e.target === this);
+            });
+            editModal.addEventListener('mouseup', function (e) {
+                if (editModal._downOnSelf && e.target === this) closeEditModal();
             });
             editModalClose.addEventListener('click', closeEditModal);
             verifySubmitBtn.addEventListener('click', handleVerifySubmit);
@@ -3034,8 +3040,11 @@
             editSubmitBtn.addEventListener('click', handleEditSubmit);
 
             /* --- 后台成员模态 --- */
-            memberModal.addEventListener('click', function (e) {
-                if (e.target === this) closeMemberModal();
+            memberModal.addEventListener('mousedown', function (e) {
+                memberModal._downOnSelf = (e.target === this);
+            });
+            memberModal.addEventListener('mouseup', function (e) {
+                if (memberModal._downOnSelf && e.target === this) closeMemberModal();
             });
             memberModalClose.addEventListener('click', closeMemberModal);
             memberCancelBtn.addEventListener('click', closeMemberModal);
