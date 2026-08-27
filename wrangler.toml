@@ -6,4 +6,4 @@ assets = { directory = "./content" }
 [[d1_databases]]
 binding = "DB"
 database_name = "star-timeline"
-database_id = "<在创建后用 npx wrangler d1 info 查询并填入>"
+database_id = "a7be9729-3e90-4f81-8acd-6e2faa9eeafa"
