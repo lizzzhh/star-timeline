@@ -62,6 +62,10 @@
             --err-border: #e8cdc9;
             --err-border-2: #d8a49e;
 
+            --scrollbar-thumb: #c4ccd8;
+            --scrollbar-thumb-hover: #a6b0c1;
+            --scrollbar-track: transparent;
+
             color-scheme: light;
         }
 
@@ -100,6 +104,10 @@
             --err-bg: #2b1a18;
             --err-border: #5c322c;
             --err-border-2: #6e3a33;
+
+            --scrollbar-thumb: #3a4252;
+            --scrollbar-thumb-hover: #4d576a;
+            --scrollbar-track: transparent;
         }
 
         * {
@@ -115,6 +123,32 @@
 
         html {
             scrollbar-gutter: stable;
+        }
+
+        /* ===== 滚动条美化：细窄、随主题、不挤压内容 ===== */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+        }
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 999px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--scrollbar-thumb-hover);
+            background-clip: padding-box;
+        }
+        ::-webkit-scrollbar-corner {
+            background: transparent;
         }
 
         body {
@@ -501,6 +535,7 @@
             border-color: var(--border);
             overflow-y: auto;
             overscroll-behavior: contain;
+            scrollbar-gutter: stable;
         }
 
         .expand-content {
@@ -836,6 +871,7 @@
             padding: 20px;
             overflow-y: auto;
             overscroll-behavior: contain;
+            scrollbar-gutter: stable;
         }
 
         /* ===== 表单 ===== */
@@ -1069,6 +1105,7 @@
             padding: 18px 20px;
             margin-bottom: 16px;
             overflow-x: auto;
+            scrollbar-gutter: stable;
         }
 
         .sub-meta {
