@@ -6,6 +6,15 @@
 > 成员通过真实姓名验证后可提交资料修改，由管理员在后台统一审核；个人隐私「只进不出」，全流程无明文存储。
 
 ---
+## Demo
+
+在线demo: https://star-timeline-demo.00910721.xyz/
+管理员密码: admin
+
+![p1](docs/image.png)
+![p2](docs/image-1.png)
+![p3](docs/image-2.png)
+![p4](docs/image-3.png)
 
 ## 目录
 
