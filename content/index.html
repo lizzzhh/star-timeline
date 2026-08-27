@@ -2199,6 +2199,16 @@
                 return { w: window.innerWidth, h: window.innerHeight, ox: 0, oy: 0 };
             }
 
+            // getBoundingClientRect 返回的是「视觉视口」坐标，而 position:fixed 的
+            // left/top 是「布局视口」坐标；移动端地址栏会引起二者偏移。此函数把
+            // getBoundingClientRect 的结果换算成 fixed 定位可用的布局视口坐标。
+            function toFixedRect(rect) {
+                const vv = window.visualViewport;
+                const ox = vv ? vv.offsetLeft : 0;
+                const oy = vv ? vv.offsetTop : 0;
+                return { left: rect.left + ox, top: rect.top + oy, width: rect.width, height: rect.height };
+            }
+
             function computeTargetRect() {
                 const vp = getViewport();
                 const isMobile = vp.w <= 700;
@@ -2444,7 +2454,7 @@
                     width: parseFloat(getComputedStyle(expandCard).width),
                     height: parseFloat(getComputedStyle(expandCard).height)
                 };
-                const start = alreadyOpen ? liveRect : thumbEl.getBoundingClientRect();
+                const start = alreadyOpen ? liveRect : toFixedRect(thumbEl.getBoundingClientRect());
                 const padTop = getCollapsedPadTop(thumbEl, start);
 
                 expandCard.style.transition = 'none';
@@ -2506,14 +2516,14 @@
                 let targetRect, padTop = 26;
                 if (targetThumb && document.contains(targetThumb)) {
                     const r = targetThumb.getBoundingClientRect();
-                    targetRect = { left: r.left, top: r.top, width: r.width, height: r.height };
+                    targetRect = toFixedRect(r);
                     padTop = getCollapsedPadTop(targetThumb, r);
                 } else {
                     targetRect = expandCard._thumbRect || computeTargetRect();
                 }
 
                 // 以卡片当前实时位置定格作为新基准，强制终止上一次动画的计算
-                const start = expandCard.getBoundingClientRect();
+                const start = toFixedRect(expandCard.getBoundingClientRect());
                 expandCard.style.transition = 'none';
                 expandContent.style.transition = 'none';
                 expandCard.style.setProperty('--pad-top', padTop + 'px');
