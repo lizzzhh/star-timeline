@@ -276,13 +276,21 @@ open $BASE/
 ## 常见问题
 
 **Q1：忘记管理密码怎么办？**
+
 重新注入即可覆盖：`npx wrangler secret put ADMIN_PASSWORD`，随后已发出的 adminToken 不受影响，无需重启 Worker。
+
 **Q2：可以更换 SERVER_PEPPER 吗？**
+
 不建议。`SERVER_PEPPER` 参与 deterministic 哈希，更换后已存的 `real_name_lookup` 将全部失配，用户无法再验名。若必须更换，需要逐个成员用新姓名调用管理员更新接口重建哈希。
+
 **Q3：为什么管理员也看不到成员的真实姓名？**
+
 这是有意设计（§3.4）。登记 姓名 存哈希摘要不可逆，保证数据库泄露场景下会员隐私不受影响；管理员可通过「新增/更新成员」重置某条登记姓名。
+
 **Q4：并发同时 approve 多个 pending 提交会怎样？**
+
 系统采用 last-write-wins 策略全量应用，不做冲突检测；若成员在其间被删除，approve 返回 `404 MEMBER_NOT_FOUND` 拒绝应用。
+
 **Q5：本地开发？**
 
 创建`.dev.vars`，写入以下内容
