@@ -2415,38 +2415,49 @@
                展开卡片动画
                ============================================================ */
             function openExpand(id, thumbEl) {
-                if (expandAnimating) return;
                 const member = getMemberById(id);
                 if (!member) return;
 
-                if (isExpanded) {
-                    if (currentMemberId === id) { closeExpand(); return; }
-                    closeExpand(() => openExpand(id, thumbEl));
-                    return;
+                if (isExpanded && currentMemberId === id) { closeExpand(); return; }
+
+                // 打断进行中的动画：取消旧动画，并以卡片当前实时位置作为新起点
+                const wasAnimating = expandAnimating;
+                if (wasAnimating) {
+                    clearTimeout(animTimer);
+                    animSeq++;
                 }
 
                 const seq = ++animSeq;
+                const switching = isExpanded;
                 currentMemberId = id;
                 expandAnimating = true;
                 fillExpandCard(member);
 
-                const start = thumbEl.getBoundingClientRect();
+                // 起点：切换/打断时取卡片当前实时位置，否则从缩略图位置展开
+                const start = (switching || wasAnimating)
+                    ? expandCard.getBoundingClientRect()
+                    : thumbEl.getBoundingClientRect();
                 const padTop = getCollapsedPadTop(thumbEl, start);
 
                 expandCard.style.transition = 'none';
                 expandContent.style.transition = 'none';
-                expandCard.classList.remove('show');
+                if (!switching) expandCard.classList.remove('show');
                 expandCard.style.setProperty('--pad-top', padTop + 'px');
                 setCardRect(start);
+                // 强制回流：以上一次动画被终止、当前实时位置作为新基准提交，
+                // 避免新动画一开始先跳向上一次动画的目标位置
+                expandCard.getBoundingClientRect();
                 expandCard.style.overflow = 'hidden';
                 expandCard.style.pointerEvents = 'none';
                 expandCard.style.visibility = 'visible';
 
+                if (expandCard._thumbEl && expandCard._thumbEl !== thumbEl && document.contains(expandCard._thumbEl)) {
+                    expandCard._thumbEl.classList.remove('expanded');
+                }
                 thumbEl.classList.add('expanded');
                 overlay.classList.add('active');
-                lockScroll();
+                if (!switching) lockScroll();
 
-                void expandCard.offsetHeight;
                 expandCard.style.transition = '';
                 expandContent.style.transition = '';
 
@@ -2454,7 +2465,7 @@
                     requestAnimationFrame(() => {
                         if (seq !== animSeq) return;
                         setCardRect(computeTargetRect());
-                        expandCard.classList.add('show');
+                        if (!switching) expandCard.classList.add('show');
                     });
                 });
 
@@ -2472,7 +2483,11 @@
             }
 
             function closeExpand(onDone) {
-                if (!isExpanded || expandAnimating) return;
+                if (!isExpanded && !expandAnimating) { if (typeof onDone === 'function') onDone(); return; }
+                if (expandAnimating) {
+                    clearTimeout(animTimer);
+                    animSeq++;
+                }
                 const seq = ++animSeq;
                 expandAnimating = true;
 
@@ -2489,12 +2504,26 @@
                     targetRect = expandCard._thumbRect || computeTargetRect();
                 }
 
+                // 以卡片当前实时位置定格作为新基准，强制终止上一次动画的计算
+                const start = expandCard.getBoundingClientRect();
+                expandCard.style.transition = 'none';
+                expandContent.style.transition = 'none';
                 expandCard.style.setProperty('--pad-top', padTop + 'px');
                 expandCard.classList.remove('show');
                 expandCard.style.pointerEvents = 'none';
                 expandCard.style.overflow = 'hidden';
-                setCardRect(targetRect);
+                setCardRect(start);
+                expandCard.getBoundingClientRect();
                 overlay.classList.remove('active');
+                expandCard.style.transition = '';
+                expandContent.style.transition = '';
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        if (seq !== animSeq) return;
+                        setCardRect(targetRect);
+                    });
+                });
 
                 clearTimeout(animTimer);
                 animTimer = setTimeout(() => {
