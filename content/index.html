@@ -1,0 +1,3003 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>社团 · 成员时间线</title>
+    <style>
+        :root {
+            --ease: cubic-bezier(0.22, 0.9, 0.36, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        html {
+            scrollbar-gutter: stable;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f2f4f8;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
+            padding: 40px 24px 60px;
+            color: #1e1e2a;
+        }
+
+        .app {
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        /* ===== 顶部 ===== */
+        .hero {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding-bottom: 24px;
+            border-bottom: 2px solid #d0d7e2;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .logo-circle {
+            width: 72px;
+            height: 72px;
+            background: #0b0b14;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 1px solid #d0d7e2;
+        }
+
+        .logo-circle span {
+            color: #fff;
+            font-size: 32px;
+            font-weight: 600;
+        }
+
+        .hero-title h1 {
+            font-size: 32px;
+            font-weight: 600;
+            color: #0b0b14;
+        }
+
+        .hero-title .sub {
+            font-size: 14px;
+            color: #5b677c;
+            margin-top: 2px;
+        }
+
+        .hero-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* ===== 工具栏 ===== */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: 1px solid #d0d7e2;
+            padding: 4px 18px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #3d4a5e;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            font-family: inherit;
+            border-radius: 0;
+        }
+
+        .filter-btn:hover {
+            background: #eef1f6;
+            border-color: #b6c0ce;
+        }
+
+        .filter-btn.active {
+            background: #0b0b14;
+            border-color: #0b0b14;
+            color: #fff;
+        }
+
+        .count-badge {
+            background: #e6eaf0;
+            padding: 4px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1e2a3a;
+            border: 1px solid #c8cfdb;
+            border-radius: 0;
+            white-space: nowrap;
+        }
+
+        .reset-btn {
+            background: transparent;
+            border: 1px solid #c8cfdb;
+            padding: 4px 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1e2a3a;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-family: inherit;
+            border-radius: 0;
+            text-decoration: none;
+            display: inline-block;
+            line-height: 1.6;
+        }
+
+        .reset-btn:hover {
+            background: #e6eaf0;
+            border-color: #a8b3c4;
+        }
+
+        .toolbar-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* ===== 时间线 ===== */
+        .timeline {
+            position: relative;
+            padding-left: 32px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: #c8cfdb;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 32px;
+            margin-bottom: 40px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 6px;
+            width: 14px;
+            height: 14px;
+            background: #0b0b14;
+            border: 2px solid #f2f4f8;
+            box-shadow: 0 0 0 1px #0b0b14;
+            border-radius: 0;
+        }
+
+        .generation-header {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .generation-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #0b0b14;
+        }
+
+        .generation-count {
+            font-size: 13px;
+            color: #5b677c;
+            background: #eef1f6;
+            padding: 2px 12px;
+            border: 1px solid #dce2ec;
+            border-radius: 0;
+        }
+
+        /* ===== 缩略卡片 ===== */
+        .card-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .card-thumb {
+            width: 120px;
+            height: 150px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 16px 8px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            transition: box-shadow 0.25s, transform 0.2s, border-color 0.25s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            border-radius: 0;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-thumb:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.02);
+            transform: translateY(-3px);
+            border-color: #b0bac8;
+        }
+
+        .card-thumb.expanded {
+            visibility: hidden;
+        }
+
+        .thumb-avatar {
+            width: 64px;
+            height: 64px;
+            border: 1px solid #d0d7e2;
+            background: #eef1f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 600;
+            color: #1e2a3a;
+            overflow: hidden;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .thumb-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .thumb-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0b0b14;
+            letter-spacing: -0.1px;
+            line-height: 1.3;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ===== 遮罩 ===== */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.40s ease, visibility 0.40s ease;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            background: rgba(0, 0, 0, 0.28);
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* ===== 展开卡片 ===== */
+        .expand-card {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 120px;
+            height: 150px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            padding: 0;
+            cursor: default;
+            overflow: hidden;
+            visibility: hidden;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            will-change: left, top, width, height;
+            transition:
+                left 0.45s var(--ease),
+                top 0.45s var(--ease),
+                width 0.45s var(--ease),
+                height 0.45s var(--ease),
+                box-shadow 0.45s var(--ease),
+                border-color 0.45s var(--ease);
+        }
+
+        .expand-card.show {
+            box-shadow: 0 24px 56px rgba(0, 0, 0, 0.18);
+            border-color: #d0d7e2;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+
+        .expand-content {
+            flex: 1 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: var(--pad-top, 30px) 8px 12px;
+            width: 100%;
+            transition: padding 0.45s var(--ease);
+        }
+
+        .expand-card.show .expand-content {
+            padding: 28px 28px 24px;
+        }
+
+        .expand-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            flex-shrink: 0;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .expand-avatar {
+            width: 64px;
+            height: 64px;
+            border: 1px solid #d0d7e2;
+            background: #eef1f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 600;
+            color: #1e2a3a;
+            overflow: hidden;
+            flex-shrink: 0;
+            margin-bottom: 10px;
+            border-radius: 0;
+            transition:
+                width 0.45s var(--ease),
+                height 0.45s var(--ease),
+                font-size 0.45s var(--ease),
+                margin-bottom 0.45s var(--ease);
+        }
+
+        .expand-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .expand-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0b0b14;
+            letter-spacing: -0.1px;
+            line-height: 1.3;
+            text-align: center;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            transition: font-size 0.45s var(--ease);
+        }
+
+        .expand-card.show .expand-avatar {
+            width: 72px;
+            height: 72px;
+            font-size: 30px;
+            margin-bottom: 14px;
+        }
+
+        .expand-card.show .expand-name {
+            font-size: 22px;
+        }
+
+        .expand-details {
+            width: 100%;
+            min-width: 0;
+            flex: 1 1 auto;
+            margin-top: 2px;
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            transition: opacity 0.32s ease 0.1s;
+        }
+
+        .expand-card.show .expand-details {
+            opacity: 1;
+        }
+
+        .expand-role {
+            font-size: 13px;
+            font-weight: 500;
+            color: #5b677c;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+
+        .expand-divider {
+            border: none;
+            border-top: 1px solid #eef1f6;
+            margin: 10px 0 14px;
+        }
+
+        .expand-bio {
+            font-size: 14px;
+            color: #3d4a5e;
+            line-height: 1.6;
+            margin-bottom: 14px;
+            flex: 1;
+        }
+
+        .expand-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .expand-tags .tag {
+            background: #f0f2f6;
+            border: 1px solid #dce2ec;
+            padding: 2px 14px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #3d4a5e;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            border-radius: 0;
+        }
+
+        .expand-social {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .expand-social .social-link {
+            display: inline-flex;
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #dce2ec;
+            padding: 4px 14px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #3d4a5e;
+            letter-spacing: 0.3px;
+            text-decoration: none;
+            border-radius: 0;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+
+        .expand-social .social-link::after {
+            content: '↗';
+            margin-left: 7px;
+            font-size: 11px;
+            color: #9aa6b5;
+            transition: color 0.15s;
+        }
+
+        .expand-social .social-link:hover {
+            background: #f0f2f6;
+            border-color: #b0bac8;
+            color: #0b0b14;
+        }
+
+        .expand-social .social-link:hover::after {
+            color: #0b0b14;
+        }
+
+        .expand-social .social-empty {
+            color: #9aa6b5;
+            font-size: 13px;
+        }
+
+        .expand-edit-btn {
+            align-self: center;
+            margin-top: 14px;
+            background: transparent;
+            border: 1px solid #dce2ec;
+            padding: 5px 16px;
+            font-family: inherit;
+            font-size: 12px;
+            color: #5b677c;
+            cursor: pointer;
+            border-radius: 0;
+            transition: border-color 0.15s, color 0.15s;
+        }
+
+        .expand-edit-btn:hover {
+            border-color: #0b0b14;
+            color: #0b0b14;
+        }
+
+        .expand-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: transparent;
+            border: none;
+            font-size: 22px;
+            color: #5b677c;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-family: inherit;
+            transition: color 0.15s, opacity 0.45s ease;
+            line-height: 1;
+            border-radius: 0;
+            opacity: 0;
+            z-index: 10;
+        }
+
+        .expand-card.show .expand-close {
+            opacity: 1;
+        }
+
+        .expand-close:hover {
+            color: #0b0b14;
+        }
+
+        /* ===== 空状态 / 加载 ===== */
+        .empty-state,
+        .state-box {
+            width: 100%;
+            text-align: center;
+            padding: 40px 20px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            color: #5b677c;
+            border-radius: 0;
+        }
+
+        .empty-state p,
+        .state-box p {
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+
+        .state-box .spinner {
+            width: 26px;
+            height: 26px;
+            border: 3px solid #d0d7e2;
+            border-top-color: #0b0b14;
+            border-radius: 50%;
+            margin: 0 auto 14px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(1turn);
+            }
+        }
+
+        /* ===== 通用模态 ===== */
+        .modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            background: rgba(0, 0, 0, 0.32);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-box {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            width: 100%;
+            max-width: 540px;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 24px 56px rgba(0, 0, 0, 0.18);
+            transform: translateY(14px) scale(0.98);
+            transition: transform 0.3s var(--ease);
+        }
+
+        .modal.active .modal-box {
+            transform: none;
+        }
+
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #eef1f6;
+            font-size: 17px;
+            font-weight: 600;
+            color: #0b0b14;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            color: #5b677c;
+            cursor: pointer;
+            padding: 2px 6px;
+            font-family: inherit;
+            border-radius: 0;
+        }
+
+        .modal-close:hover {
+            color: #0b0b14;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+
+        /* ===== 表单 ===== */
+        .step-tip {
+            font-size: 13px;
+            color: #5b677c;
+            line-height: 1.7;
+            background: #f6f8fb;
+            border: 1px solid #e2e8f0;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+        }
+
+        .step-tip b {
+            color: #0b0b14;
+        }
+
+        .form-row {
+            margin-bottom: 14px;
+        }
+
+        .form-row>label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #5b677c;
+            margin-bottom: 6px;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+        }
+
+        .form-row input[type="text"],
+        .form-row input[type="password"],
+        .form-row textarea,
+        .rej-box input,
+        .admin-login input {
+            width: 100%;
+            border: 1px solid #d0d7e2;
+            background: #fff;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 14px;
+            color: #1e1e2a;
+            border-radius: 0;
+            transition: border-color 0.15s;
+        }
+
+        .form-row input:focus,
+        .form-row textarea:focus,
+        .rej-box input:focus,
+        .admin-login input:focus {
+            outline: none;
+            border-color: #0b0b14;
+        }
+
+        .form-row textarea {
+            resize: vertical;
+            min-height: 72px;
+            line-height: 1.6;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: #9aa6b5;
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+
+        .form-error {
+            color: #8f2f27;
+            font-size: 13px;
+            margin-top: 8px;
+            min-height: 18px;
+            line-height: 1.5;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        .social-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .social-row input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sr-del {
+            border: 1px solid #d0d7e2;
+            background: #fff;
+            cursor: pointer;
+            padding: 0 12px;
+            font-size: 14px;
+            color: #5b677c;
+            font-family: inherit;
+            border-radius: 0;
+            flex-shrink: 0;
+        }
+
+        .sr-del:hover {
+            border-color: #8f2f27;
+            color: #8f2f27;
+        }
+
+        /* 只写字段（真实姓名）的输入框视觉标记 */
+        .write-only-field input {
+            background: #fbfaf5;
+            border-style: dashed;
+        }
+
+        /* ===== 按钮 ===== */
+        .btn-primary,
+        .btn-ghost,
+        .btn-approve,
+        .btn-reject {
+            font-family: inherit;
+            cursor: pointer;
+            border-radius: 0;
+            transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+        }
+
+        .btn-primary {
+            background: #0b0b14;
+            color: #fff;
+            border: 1px solid #0b0b14;
+            padding: 8px 24px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #232336;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.55;
+            cursor: default;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: #3d4a5e;
+            border: 1px solid #c8cfdb;
+            padding: 8px 18px;
+            font-size: 13px;
+        }
+
+        .btn-ghost:hover {
+            background: #e6eaf0;
+            border-color: #a8b3c4;
+        }
+
+        .btn-approve {
+            background: #1f6b3a;
+            color: #fff;
+            border: 1px solid #1f6b3a;
+            padding: 6px 18px;
+            font-size: 13px;
+        }
+
+        .btn-approve:hover {
+            background: #175630;
+        }
+
+        .btn-reject {
+            background: #8f2f27;
+            color: #fff;
+            border: 1px solid #8f2f27;
+            padding: 6px 18px;
+            font-size: 13px;
+        }
+
+        .btn-reject:hover {
+            background: #75261f;
+        }
+
+        /* ===== 后台 ===== */
+        .admin-login {
+            max-width: 360px;
+            margin: 56px auto 0;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            padding: 28px 26px;
+        }
+
+        .admin-login-tip {
+            font-size: 14px;
+            color: #5b677c;
+            margin-bottom: 14px;
+        }
+
+        .admin-login .btn-primary {
+            width: 100%;
+            margin-top: 6px;
+        }
+
+        .sub-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+        }
+
+        .sub-meta {
+            font-size: 13px;
+            color: #5b677c;
+            margin-bottom: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 20px;
+            align-items: center;
+        }
+
+        .sub-meta b {
+            color: #0b0b14;
+        }
+
+        .verify-chip {
+            display: inline-block;
+            font-size: 12px;
+            color: #1f6b3a;
+            background: #f0f9f3;
+            border: 1px solid #9ecdb0;
+            padding: 2px 10px;
+            letter-spacing: 0.3px;
+        }
+
+        .diff-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-bottom: 14px;
+            min-width: 420px;
+        }
+
+        .diff-table th,
+        .diff-table td {
+            border: 1px solid #e2e8f0;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .diff-table th {
+            background: #f6f8fb;
+            font-weight: 600;
+            color: #5b677c;
+            white-space: nowrap;
+        }
+
+        .diff-old {
+            color: #8f2f27;
+            background: #fdf3f2;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .diff-new {
+            color: #1f6b3a;
+            background: #f0f9f3;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .sub-reason {
+            font-size: 13px;
+            color: #8f2f27;
+            background: #fdf3f2;
+            border: 1px solid #e8cdc9;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+        }
+
+        .sub-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .rej-box {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .rej-box input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .badge-status {
+            display: inline-block;
+            padding: 3px 12px;
+            font-size: 12px;
+            border: 1px solid;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-status.st-approved {
+            color: #1f6b3a;
+            border-color: #9ecdb0;
+            background: #f0f9f3;
+        }
+
+        .badge-status.st-rejected {
+            color: #8f2f27;
+            border-color: #d8a49e;
+            background: #fdf3f2;
+        }
+
+        /* ===== 后台 · 成员管理 ===== */
+        .ma-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .ma-count {
+            font-size: 14px;
+            color: #5b677c;
+        }
+
+        .member-admin-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .ma-avatar {
+            width: 44px;
+            height: 44px;
+            border: 1px solid #d0d7e2;
+            background: #eef1f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e2a3a;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .ma-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .ma-info {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .ma-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #0b0b14;
+        }
+
+        .ma-name .ma-id {
+            color: #9aa6b5;
+            font-size: 12px;
+            font-weight: 400;
+            margin-left: 6px;
+        }
+
+        .ma-sub {
+            font-size: 12.5px;
+            color: #5b677c;
+            margin-top: 2px;
+        }
+
+        .ma-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .ma-del-box {
+            width: 100%;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #fdf3f2;
+            border: 1px solid #e8cdc9;
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #8f2f27;
+        }
+
+        .ma-del-box .ma-del-text {
+            flex: 1;
+            min-width: 200px;
+            line-height: 1.6;
+        }
+
+        /* ===== toast ===== */
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            transform: translate(-50%, 16px);
+            background: #0b0b14;
+            color: #fff;
+            padding: 10px 24px;
+            font-size: 14px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, transform 0.3s, visibility 0.3s;
+            z-index: 1200;
+            max-width: 90vw;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .toast.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, 0);
+        }
+
+        .toast.error {
+            background: #8f2f27;
+        }
+
+        .toast.success {
+            background: #1f6b3a;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 700px) {
+            body {
+                padding: 24px 16px;
+            }
+
+            .hero {
+                gap: 14px;
+                padding-bottom: 20px;
+            }
+
+            .logo-circle {
+                width: 56px;
+                height: 56px;
+            }
+
+            .logo-circle span {
+                font-size: 24px;
+            }
+
+            .hero-title h1 {
+                font-size: 24px;
+            }
+
+            .hero-actions {
+                margin-left: 0;
+            }
+
+            .timeline {
+                padding-left: 20px;
+            }
+
+            .timeline::before {
+                left: 4px;
+            }
+
+            .timeline-item {
+                padding-left: 24px;
+                margin-bottom: 32px;
+            }
+
+            .timeline-item::before {
+                left: -16px;
+                width: 12px;
+                height: 12px;
+            }
+
+            .card-thumb {
+                width: 100px;
+                height: 130px;
+                padding: 12px 6px 10px;
+            }
+
+            .thumb-avatar {
+                width: 54px;
+                height: 54px;
+                font-size: 20px;
+                margin-bottom: 8px;
+            }
+
+            .thumb-name {
+                font-size: 12px;
+            }
+
+            .card-grid {
+                gap: 12px;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-bar,
+            .toolbar-right {
+                justify-content: flex-start;
+            }
+
+            .generation-title {
+                font-size: 19px;
+            }
+
+            .expand-content {
+                padding: var(--pad-top, 26px) 6px 10px;
+            }
+
+            .expand-avatar {
+                width: 54px;
+                height: 54px;
+                font-size: 20px;
+                margin-bottom: 8px;
+            }
+
+            .expand-name {
+                font-size: 12px;
+            }
+
+            .expand-card.show .expand-content {
+                padding: 18px 16px 16px;
+            }
+
+            .expand-card.show .expand-avatar {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+                margin-bottom: 12px;
+            }
+
+            .expand-card.show .expand-name {
+                font-size: 18px;
+            }
+
+            .ma-info {
+                min-width: 140px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .card-thumb {
+                width: 80px;
+                height: 110px;
+                padding: 10px 4px 8px;
+            }
+
+            .thumb-avatar {
+                width: 44px;
+                height: 44px;
+                font-size: 16px;
+                margin-bottom: 6px;
+            }
+
+            .thumb-name {
+                font-size: 10px;
+            }
+
+            .card-grid {
+                gap: 10px;
+            }
+
+            .expand-content {
+                padding: var(--pad-top, 24px) 4px 8px;
+            }
+
+            .expand-avatar {
+                width: 44px;
+                height: 44px;
+                font-size: 16px;
+                margin-bottom: 6px;
+            }
+
+            .expand-name {
+                font-size: 10px;
+            }
+
+            .expand-card.show .expand-content {
+                padding: 14px 12px 12px;
+            }
+
+            .expand-card.show .expand-avatar {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+                margin-bottom: 10px;
+            }
+
+            .expand-card.show .expand-name {
+                font-size: 16px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .expand-card,
+            .expand-content,
+            .expand-avatar,
+            .expand-name,
+            .expand-details,
+            .overlay,
+            .modal,
+            .modal-box {
+                transition-duration: 0.01ms !important;
+                transition-delay: 0s !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- ================= 前台主视图 ================= -->
+        <div id="viewMain">
+            <div class="hero">
+                <div class="logo-circle"><span>社</span></div>
+                <div class="hero-title">
+                    <h1>星轨Timeline</h1>
+                    <div class="sub">动漫 · 创作 · 热爱 · 无限</div>
+                </div>
+            </div>
+            <div class="toolbar">
+                <div class="filter-bar" id="filterBar"></div>
+                <div class="toolbar-right">
+                    <span class="count-badge" id="countBadge">—</span>
+                    <button class="reset-btn" id="resetFilterBtn">全部显示</button>
+                    <button class="reset-btn" id="editOpenBtn">✎ 修改资料</button>
+                    <a class="reset-btn" href="#/admin">后台管理</a>
+                </div>
+            </div>
+            <div class="timeline" id="timelineContainer"></div>
+        </div>
+
+        <!-- ================= 后台视图（#/admin） ================= -->
+        <div id="viewAdmin" hidden>
+            <div class="hero">
+                <div class="logo-circle"><span>审</span></div>
+                <div class="hero-title">
+                    <h1>后台管理</h1>
+                    <div class="sub">资料审核 · 成员管理</div>
+                </div>
+                <div class="hero-actions">
+                    <a class="reset-btn" href="#/">← 返回前台</a>
+                </div>
+            </div>
+
+            <!-- 未登录：密码验证 -->
+            <div id="adminLoginView">
+                <div class="admin-login">
+                    <p class="admin-login-tip">请输入管理密码进入后台。</p>
+                    <div class="form-row">
+                        <input type="password" id="adminPasswordInput" placeholder="管理密码"
+                            autocomplete="current-password" />
+                    </div>
+                    <div class="form-error" id="adminLoginError"></div>
+                    <button class="btn-primary" id="adminLoginBtn">进入后台</button>
+                </div>
+            </div>
+
+            <!-- 已登录：管理面板 -->
+            <div id="adminPanelView" hidden>
+                <div class="toolbar">
+                    <div class="filter-bar" id="adminTabs">
+                        <button class="filter-btn active" data-tab="pending">待审核</button>
+                        <button class="filter-btn" data-tab="approved">已通过</button>
+                        <button class="filter-btn" data-tab="rejected">已驳回</button>
+                        <button class="filter-btn" data-tab="members">成员管理</button>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="reset-btn" id="adminLogoutBtn">退出登录</button>
+                    </div>
+                </div>
+                <div id="adminList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遮罩 -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- 展开卡片 -->
+    <div class="expand-card" id="expandCard">
+        <button class="expand-close" id="closeOverlayBtn">✕</button>
+        <div class="expand-content" id="expandContent">
+            <div class="expand-header">
+                <div class="expand-avatar" id="expandAvatar"></div>
+                <div class="expand-name" id="expandName">—</div>
+            </div>
+            <div class="expand-details">
+                <div class="expand-role" id="expandRole">—</div>
+                <hr class="expand-divider" />
+                <div class="expand-bio" id="expandBio">—</div>
+                <div class="expand-tags" id="expandTags"></div>
+                <div class="expand-social" id="expandSocial"></div>
+                <button type="button" class="expand-edit-btn" id="expandEditBtn">✎ 申请修改资料</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑资料模态（前台 · 走审核流程） -->
+    <div class="modal" id="editModal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <span>修改资料</span>
+                <button class="modal-close" id="editModalClose">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="editStepVerify">
+                    <p class="step-tip">为确认你是本人，请先输入社团登记的<b>真实姓名</b>进行验证。验证通过后可修改资料，修改内容将提交后台等待审核。</p>
+                    <div class="form-row">
+                        <label>真实姓名</label>
+                        <input type="text" id="verifyNameInput" placeholder="请输入真实姓名" autocomplete="off" />
+                    </div>
+                    <div class="form-error" id="verifyError"></div>
+                    <div class="form-actions">
+                        <button class="btn-primary" id="verifySubmitBtn">验 证</button>
+                    </div>
+                </div>
+
+                <div id="editStepForm" hidden>
+                    <p class="step-tip">正在修改 <b id="editTargetName">—</b> 的资料。提交后需管理员审核通过才会生效。</p>
+                    <div class="form-row">
+                        <label>昵称</label>
+                        <input type="text" id="efName" />
+                    </div>
+                    <div class="form-row">
+                        <label>届（年份）</label>
+                        <input type="text" id="efGeneration" placeholder="如 2025" />
+                    </div>
+                    <div class="form-row">
+                        <label>职位</label>
+                        <input type="text" id="efRole" />
+                    </div>
+                    <div class="form-row">
+                        <label>头像 URL</label>
+                        <input type="text" id="efAvatar" placeholder="留空则使用昵称首字" />
+                    </div>
+                    <div class="form-row">
+                        <label>简介</label>
+                        <textarea id="efBio"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <label>标签</label>
+                        <input type="text" id="efTags" placeholder="动漫, 绘画, 音乐" />
+                        <div class="form-hint">多个标签用逗号分隔</div>
+                    </div>
+                    <div class="form-row">
+                        <label>社交链接</label>
+                        <div id="efSocialRows"></div>
+                        <button type="button" class="btn-ghost" id="efAddSocial">＋ 添加链接</button>
+                    </div>
+                    <div class="form-error" id="editSubmitError"></div>
+                    <div class="form-actions">
+                        <button class="btn-ghost" id="editBackBtn">← 重新验证</button>
+                        <button class="btn-primary" id="editSubmitBtn">提交审核</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成员编辑模态（后台 · 立即生效） -->
+    <div class="modal" id="memberModal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <span id="memberModalTitle">添加成员</span>
+                <button class="modal-close" id="memberModalClose">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="step-tip" id="memberModalTip"></p>
+                <div class="form-row write-only-field">
+                    <label>真实姓名 *</label>
+                    <input type="text" id="mfRealName" placeholder="如：张三" autocomplete="off" />
+                    <div class="form-hint" id="mfRealNameHint"></div>
+                </div>
+                <div class="form-row">
+                    <label>昵称 *</label>
+                    <input type="text" id="mfName" />
+                </div>
+                <div class="form-row">
+                    <label>届（年份）*</label>
+                    <input type="text" id="mfGeneration" placeholder="如 2025" />
+                </div>
+                <div class="form-row">
+                    <label>职位</label>
+                    <input type="text" id="mfRole" />
+                </div>
+                <div class="form-row">
+                    <label>头像 URL</label>
+                    <input type="text" id="mfAvatar" placeholder="留空则使用昵称首字" />
+                </div>
+                <div class="form-row">
+                    <label>简介</label>
+                    <textarea id="mfBio"></textarea>
+                </div>
+                <div class="form-row">
+                    <label>标签</label>
+                    <input type="text" id="mfTags" placeholder="动漫, 绘画, 音乐" />
+                    <div class="form-hint">多个标签用逗号分隔</div>
+                </div>
+                <div class="form-row">
+                    <label>社交链接</label>
+                    <div id="mfSocialRows"></div>
+                    <button type="button" class="btn-ghost" id="mfAddSocial">＋ 添加链接</button>
+                </div>
+                <div class="form-error" id="memberFormError"></div>
+                <div class="form-actions">
+                    <button class="btn-ghost" id="memberCancelBtn">取 消</button>
+                    <button class="btn-primary" id="memberSaveBtn">保 存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- toast -->
+    <div class="toast" id="toastEl"></div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            /* ============================================================
+               ★ 配置 ★
+               USE_MOCK = true  ：内置 mock 后端（无需服务器即可演示）
+               USE_MOCK = false ：请求真实后端（按文末 API 约定实现）
+               ============================================================ */
+            const USE_MOCK = false;
+            const API_BASE = '/api';
+
+            /* Mock 凭据：后台密码 admin888
+               真实姓名内嵌在各成员 realName 字段（仅 mock 内存持有，
+               对外任何接口一律剔除——模拟生产环境的哈希存储）：
+               张三→御坂美琴、李四→立华奏、王五→椎名真白、赵六→夏目贵志、
+               孙七→雪之下雪乃、周八→比企谷八幡、吴九→时崎狂三、郑十→五河士道、
+               陈一→亚丝娜、林二→桐人、黄三→初音未来、徐四→洛天依
+               新增成员使用添加时填写的真实姓名。 */
+            const MOCK_ADMIN_PASSWORD = 'admin888';
+
+            const MOCK_MEMBERS = [{
+                id: 1, realName: '张三', name: '御坂美琴', generation: '2025', role: '社长 · 电击使',
+                bio: '常盘台中学王牌，超电磁炮使用者。喜欢呱太，正义感爆棚。',
+                tags: ['动漫', '游戏', 'cosplay', '音乐'],
+                social: [{ name: '哔哩哔哩', url: 'https://bilibili.com/misaka' }, { name: 'Twitter', url: 'https://twitter.com/misaka_mikoto' }, { name: 'Instagram', url: 'https://instagram.com/misaka' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Misaka'
+            }, {
+                id: 2, realName: '李四', name: '立华奏', generation: '2025', role: '副社长 · 天使',
+                bio: '沉默寡言但内心温柔，擅长使用音速剑。喜欢麻婆豆腐。',
+                tags: ['动漫', '绘画', '音乐', '美食'],
+                social: [{ name: 'pixiv', url: 'https://pixiv.net/kanade' }, { name: 'SoundCloud', url: 'https://soundcloud.com/kanade' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Kanade'
+            }, {
+                id: 3, realName: '王五', name: '椎名真白', generation: '2024', role: '美术指导',
+                bio: '天才画家，生活自理能力为零。对绘画有着纯粹的执着。',
+                tags: ['绘画', '动漫', '设计', '手工'],
+                social: [{ name: 'ArtStation', url: 'https://artstation.com/mashiro' }, { name: '微博', url: 'https://weibo.com/mashiro' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Mashiro'
+            }, {
+                id: 4, realName: '赵六', name: '夏目贵志', generation: '2024', role: '文案 · 故事',
+                bio: '能看见妖怪的少年，温柔而坚强。喜欢记录人与妖之间的故事。',
+                tags: ['读书', '写作', '动漫', '旅行'],
+                social: [{ name: 'note', url: 'https://note.com/natsume' }, { name: '豆瓣', url: 'https://douban.com/people/natsume' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Natsume'
+            }, {
+                id: 5, realName: '孙七', name: '雪之下雪乃', generation: '2023', role: '策划 · 逻辑',
+                bio: '冷静理性的完美主义者，喜欢猫和古典文学。',
+                tags: ['读书', '设计', '科技', '动漫'],
+                social: [{ name: 'Twitter', url: 'https://twitter.com/yukino' }, { name: 'GitHub', url: 'https://github.com/yukino' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Yukino'
+            }, {
+                id: 6, realName: '周八', name: '比企谷八幡', generation: '2023', role: '运营 · 观察',
+                bio: '孤僻但洞察力极强，擅长用毒舌看透本质。',
+                tags: ['写作', '动漫', '游戏', '摄影'],
+                social: [{ name: 'GitHub', url: 'https://github.com/hachiman' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Hachiman'
+            }, {
+                id: 7, realName: '吴九', name: '时崎狂三', generation: '2022', role: '活动策划',
+                bio: '精灵中的最恶精灵，神秘而优雅。时间系能力者。',
+                tags: ['cosplay', '动漫', '音乐', '美食'],
+                social: [{ name: 'Instagram', url: 'https://instagram.com/kurumi' }, { name: '哔哩哔哩', url: 'https://bilibili.com/kurumi' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Kurumi'
+            }, {
+                id: 8, realName: '郑十', name: '五河士道', generation: '2022', role: '后勤 · 支援',
+                bio: '温柔可靠的哥哥型，擅长照顾他人。',
+                tags: ['美食', '动漫', '游戏', '烘焙'],
+                social: [{ name: 'Twitter', url: 'https://twitter.com/shido' }, { name: '下厨房', url: 'https://xiachufang.com/cook/shido' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Shido'
+            }, {
+                id: 9, realName: '陈一', name: '亚丝娜', generation: '2025', role: '设计 · 料理',
+                bio: '闪光亚丝娜，SAO攻略组副团长。现实中的料理达人。',
+                tags: ['美食', '动漫', '游戏', '烘焙'],
+                social: [{ name: '下厨房', url: 'https://xiachufang.com/cook/asuna' }, { name: 'Instagram', url: 'https://instagram.com/asuna' }, { name: 'Twitter', url: 'https://twitter.com/asuna' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Asuna'
+            }, {
+                id: 10, realName: '林二', name: '桐人', generation: '2024', role: '技术 · 开发',
+                bio: '黑色剑士，SAO攻略组最强者。双重世界的生活者。',
+                tags: ['游戏', '编程', '科技', '动漫'],
+                social: [{ name: 'GitHub', url: 'https://github.com/kirito' }, { name: '哔哩哔哩', url: 'https://bilibili.com/kirito' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Kirito'
+            }, {
+                id: 11, realName: '黄三', name: '初音未来', generation: '2023', role: '音乐 · 声乐',
+                bio: '虚拟歌姬，用歌声传递快乐与希望。',
+                tags: ['音乐', '动漫', '配音', '设计'],
+                social: [{ name: 'SoundCloud', url: 'https://soundcloud.com/miku' }, { name: 'Twitter', url: 'https://twitter.com/miku' }, { name: '哔哩哔哩', url: 'https://bilibili.com/miku' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Miku'
+            }, {
+                id: 12, realName: '徐四', name: '洛天依', generation: '2022', role: '音乐 · 创作',
+                bio: '中国虚拟歌姬，喜欢古风与电子音乐。',
+                tags: ['音乐', '动漫', '写作', '设计'],
+                social: [{ name: '哔哩哔哩', url: 'https://bilibili.com/luotianyi' }, { name: '网易云音乐', url: 'https://music.163.com/luotianyi' }, { name: '微博', url: 'https://weibo.com/luotianyi' }],
+                avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Luotianyi'
+            }];
+
+            /* ============================================================
+               通用工具
+               ============================================================ */
+            function deepCopy(o) { return JSON.parse(JSON.stringify(o)); }
+            function esc(s) {
+                return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+                    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+                ));
+            }
+            function fmtTime(iso) {
+                try { return new Date(iso).toLocaleString('zh-CN', { hour12: false }); }
+                catch (e) { return iso || ''; }
+            }
+            function apiErr(status, code, message) {
+                const e = new Error(message);
+                e.status = status;
+                e.code = code;
+                return e;
+            }
+
+            /* ============================================================
+               Mock 后端
+               ------------------------------------------------------------
+               realName 模拟策略：
+               - mock 内存中保存明文（仅为了模拟哈希比对）
+               - 任何 API 响应都通过 publicMember() 剔除该字段
+                 （等价于生产环境"只存哈希、明文不可恢复"）
+               ============================================================ */
+            const mockDb = {
+                members: deepCopy(MOCK_MEMBERS),
+                submissions: [],
+                nextSubId: 1,
+                nextMemberId: 13,
+                verifyTokens: new Map(),
+                adminTokens: new Set()
+            };
+
+            function getMockMember(id) {
+                return mockDb.members.find(m => m.id === Number(id));
+            }
+            function requireMockAdmin(token) {
+                if (!token || !mockDb.adminTokens.has(token)) {
+                    throw apiErr(401, 'ADMIN_TOKEN_INVALID', '后台登录已失效，请重新登录');
+                }
+            }
+            /* ★ 只进不出：对外输出成员时剔除 realName */
+            function publicMember(m) {
+                const copy = deepCopy(m);
+                delete copy.realName;
+                return copy;
+            }
+            /* 真实姓名查重（生产环境：对确定性哈希建唯一索引） */
+            function realNameTaken(realName, excludeId) {
+                return mockDb.members.some(m => m.id !== excludeId && m.realName === realName);
+            }
+
+            function handleMock(path, method, body, token) {
+                const [p, qs] = path.split('?');
+                const q = new URLSearchParams(qs || '');
+                const m = p.match(/^\/admin\/submissions\/(\d+)\/(approve|reject)$/);
+                const mm = p.match(/^\/admin\/members\/(\d+)$/);
+
+                /* ---------- 公开接口 ---------- */
+
+                // GET /members —— 剔除 realName
+                if (method === 'GET' && p === '/members') {
+                    return mockDb.members.map(publicMember);
+                }
+
+                // POST /verify-name —— 哈希比对（mock 用明文比对模拟）
+                if (method === 'POST' && p === '/verify-name') {
+                    const realName = ((body && body.realName) || '').trim();
+                    const memberId = body ? body.memberId : undefined;
+                    if (!realName) throw apiErr(400, 'PARAM_MISSING', '请输入真实姓名');
+                    const found = mockDb.members.find(x => x.realName === realName);
+                    if (!found) throw apiErr(401, 'NAME_NOT_FOUND', '该姓名不在社团登记名单中');
+                    if (memberId != null && found.id !== Number(memberId)) {
+                        throw apiErr(403, 'NAME_MISMATCH', '该姓名与目标成员不匹配，无法修改他人资料');
+                    }
+                    const vt = 'vt_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                    mockDb.verifyTokens.set(vt, { memberId: found.id, expires: Date.now() + 5 * 60 * 1000 });
+                    return {
+                        memberId: found.id,
+                        verifyToken: vt,
+                        member: publicMember(found) // 不含 realName
+                    };
+                }
+
+                // POST /submissions —— 提交修改（verifyToken 一次性）
+                if (method === 'POST' && p === '/submissions') {
+                    const vt = body && body.verifyToken;
+                    const changes = body && body.changes;
+                    const rec = mockDb.verifyTokens.get(vt);
+                    if (!rec) throw apiErr(401, 'TOKEN_INVALID', '验证已失效，请重新验证姓名');
+                    if (Date.now() > rec.expires) {
+                        mockDb.verifyTokens.delete(vt);
+                        throw apiErr(401, 'TOKEN_EXPIRED', '验证已过期，请重新验证姓名');
+                    }
+                    if (!changes || typeof changes !== 'object' || Array.isArray(changes) || !Object.keys(changes).length) {
+                        throw apiErr(400, 'CHANGES_EMPTY', '没有可提交的修改');
+                    }
+                    if (changes.name != null && !String(changes.name).trim()) throw apiErr(400, 'FIELD_INVALID', '昵称不能为空');
+                    if (changes.generation != null && !String(changes.generation).trim()) throw apiErr(400, 'FIELD_INVALID', '届不能为空');
+                    if (changes.realName != null) throw apiErr(400, 'FIELD_FORBIDDEN', '真实姓名不允许通过此接口修改');
+
+                    mockDb.verifyTokens.delete(vt); // 一次性
+                    const member = getMockMember(rec.memberId);
+                    const oldData = {};
+                    Object.keys(changes).forEach(k => { oldData[k] = deepCopy(member[k]); });
+                    const sub = {
+                        id: mockDb.nextSubId++,
+                        // ★ 不记录明文姓名（生产环境哈希不可逆）；
+                        //   仅标记"提交时已通过实名验证"
+                        verifiedByRealName: true,
+                        memberId: rec.memberId,
+                        memberName: member.name,
+                        changes: deepCopy(changes),
+                        oldData,
+                        createdAt: new Date().toISOString(),
+                        status: 'pending'
+                    };
+                    mockDb.submissions.push(sub);
+                    return { submissionId: sub.id };
+                }
+
+                /* ---------- 后台接口 ---------- */
+
+                // POST /admin/login
+                if (method === 'POST' && p === '/admin/login') {
+                    const pw = body && body.password;
+                    if (pw !== MOCK_ADMIN_PASSWORD) throw apiErr(401, 'PASSWORD_WRONG', '管理密码错误');
+                    const at = 'at_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                    mockDb.adminTokens.add(at);
+                    return { adminToken: at, expiresAt: new Date(Date.now() + 2 * 3600 * 1000).toISOString() };
+                }
+
+                // GET /admin/submissions?status=
+                if (method === 'GET' && p === '/admin/submissions') {
+                    requireMockAdmin(token);
+                    const status = q.get('status') || 'pending';
+                    return deepCopy(
+                        mockDb.submissions
+                            .filter(s => s.status === status)
+                            .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                    );
+                }
+
+                // POST /admin/submissions/:id/approve | reject
+                if (m && method === 'POST') {
+                    requireMockAdmin(token);
+                    const id = Number(m[1]);
+                    const sub = mockDb.submissions.find(s => s.id === id);
+                    if (!sub) throw apiErr(404, 'NOT_FOUND', '该审核记录不存在');
+                    if (sub.status !== 'pending') throw apiErr(409, 'ALREADY_REVIEWED', '该记录已被处理过');
+
+                    if (m[2] === 'approve') {
+                        const member = getMockMember(sub.memberId);
+                        if (!member) throw apiErr(404, 'MEMBER_NOT_FOUND', '目标成员已被删除，无法应用修改');
+                        Object.assign(member, deepCopy(sub.changes));
+                        sub.status = 'approved';
+                        sub.reviewedAt = new Date().toISOString();
+                        return { applied: true };
+                    } else {
+                        const reason = body && body.reason;
+                        if (!reason || !String(reason).trim()) throw apiErr(400, 'REASON_REQUIRED', '请填写驳回理由');
+                        sub.status = 'rejected';
+                        sub.reason = String(reason).trim();
+                        sub.reviewedAt = new Date().toISOString();
+                        return { applied: false };
+                    }
+                }
+
+                /* ---------- 后台 · 成员管理 ---------- */
+
+                // GET /admin/members —— 剔除 realName（只进不出）
+                if (method === 'GET' && p === '/admin/members') {
+                    requireMockAdmin(token);
+                    return mockDb.members.map(publicMember);
+                }
+
+                // POST /admin/members —— 添加（realName 必填 + 查重）
+                if (method === 'POST' && p === '/admin/members') {
+                    requireMockAdmin(token);
+                    const realName = body ? String(body.realName || '').trim() : '';
+                    const name = body ? String(body.name || '').trim() : '';
+                    const gen = body ? String(body.generation || '').trim() : '';
+                    if (!realName) throw apiErr(400, 'FIELD_MISSING', '真实姓名不能为空');
+                    if (realNameTaken(realName, null)) throw apiErr(409, 'REALNAME_EXISTS', '该真实姓名已登记给其他成员');
+                    if (!name) throw apiErr(400, 'FIELD_MISSING', '昵称不能为空');
+                    if (!gen) throw apiErr(400, 'FIELD_MISSING', '届不能为空');
+                    const member = {
+                        id: mockDb.nextMemberId++,
+                        realName, // 仅 mock 内存持有，对外永不返回
+                        name,
+                        generation: gen,
+                        role: (body && body.role) || '',
+                        bio: (body && body.bio) || '',
+                        avatar: (body && body.avatar) || '',
+                        tags: body && Array.isArray(body.tags) ? body.tags : [],
+                        social: body && Array.isArray(body.social) ? body.social : []
+                    };
+                    mockDb.members.push(member);
+                    return { id: member.id };
+                }
+
+                // PUT /admin/members/:id —— 编辑（realName 非空才覆盖，无清除语义）
+                if (mm && method === 'PUT') {
+                    requireMockAdmin(token);
+                    const member = getMockMember(mm[1]);
+                    if (!member) throw apiErr(404, 'MEMBER_NOT_FOUND', '该成员不存在');
+                    if (body.realName != null && String(body.realName).trim()) {
+                        const rn = String(body.realName).trim();
+                        if (realNameTaken(rn, member.id)) throw apiErr(409, 'REALNAME_EXISTS', '该真实姓名已登记给其他成员');
+                        member.realName = rn;
+                    }
+                    if (body.name != null) {
+                        if (!String(body.name).trim()) throw apiErr(400, 'FIELD_INVALID', '昵称不能为空');
+                        member.name = String(body.name).trim();
+                    }
+                    if (body.generation != null) {
+                        if (!String(body.generation).trim()) throw apiErr(400, 'FIELD_INVALID', '届不能为空');
+                        member.generation = String(body.generation).trim();
+                    }
+                    if (body.role != null) member.role = body.role;
+                    if (body.bio != null) member.bio = body.bio;
+                    if (body.avatar != null) member.avatar = body.avatar;
+                    if (body.tags !== undefined) member.tags = Array.isArray(body.tags) ? body.tags : [];
+                    if (body.social !== undefined) member.social = Array.isArray(body.social) ? body.social : [];
+                    return { updated: true };
+                }
+
+                // DELETE /admin/members/:id —— 删除（realName 随之销毁）
+                if (mm && method === 'DELETE') {
+                    requireMockAdmin(token);
+                    const idx = mockDb.members.findIndex(x => x.id === Number(mm[1]));
+                    if (idx === -1) throw apiErr(404, 'MEMBER_NOT_FOUND', '该成员不存在');
+                    const id = mockDb.members[idx].id;
+                    mockDb.members.splice(idx, 1);
+                    mockDb.submissions.forEach(s => {
+                        if (s.memberId === id && s.status === 'pending') {
+                            s.status = 'rejected';
+                            s.reason = '目标成员已被删除，提交自动作废';
+                            s.reviewedAt = new Date().toISOString();
+                        }
+                    });
+                    return { deleted: true };
+                }
+
+                throw apiErr(404, 'NOT_FOUND', '接口不存在: ' + method + ' ' + p);
+            }
+
+            function mockApi(path, method, body, token) {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        try { resolve(handleMock(path, method, body, token)); }
+                        catch (err) { reject(err); }
+                    }, 250 + Math.random() * 250);
+                });
+            }
+
+            /* ============================================================
+               API 请求层
+               成功：{ ok: true,  data: {...} }
+               失败：{ ok: false, error: { code, message } }
+               adminToken 放 Authorization: Bearer 头
+               ============================================================ */
+            async function apiFetch(path, opts = {}) {
+                const { method = 'GET', body, token } = opts;
+                if (USE_MOCK) return mockApi(path, method, body, token);
+
+                const headers = {};
+                if (body !== undefined) headers['Content-Type'] = 'application/json';
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                let res;
+                try {
+                    res = await fetch(API_BASE + path, {
+                        method,
+                        headers,
+                        body: body !== undefined ? JSON.stringify(body) : undefined
+                    });
+                } catch (e) {
+                    throw apiErr(0, 'NETWORK_ERROR', '网络异常，请稍后重试');
+                }
+
+                let payload = null;
+                try { payload = await res.json(); } catch (e) { /* 忽略非 JSON */ }
+
+                if (!res.ok || !payload || payload.ok !== true) {
+                    const err = payload && payload.error;
+                    throw apiErr(
+                        res.status,
+                        (err && err.code) || 'HTTP_' + res.status,
+                        (err && err.message) || ('请求失败（HTTP ' + res.status + '）')
+                    );
+                }
+                return payload.data;
+            }
+
+            /* ============================================================
+               状态与 DOM
+               ============================================================ */
+            const ANIM_WAIT = 500;
+
+            let members = [];
+            let activeFilter = '全部';
+            let isExpanded = false;
+            let currentMemberId = null;
+            let expandAnimating = false;
+            let animTimer = null;
+            let animSeq = 0;
+
+            let editModalOpen = false;
+            let editCtx = { targetMemberId: null, memberId: null, verifyToken: null, original: null };
+
+            let memberModalOpen = false;
+            let memberModalMode = 'add';
+            let memberModalEditId = null;
+
+            let adminToken = sessionStorage.getItem('adminToken') || null;
+            let adminTab = 'pending';
+            let adminMembersCache = [];
+            let mainNeedsReload = false;
+
+            const $ = id => document.getElementById(id);
+            const viewMain = $('viewMain');
+            const viewAdmin = $('viewAdmin');
+            const timelineEl = $('timelineContainer');
+            const filterBarEl = $('filterBar');
+            const countBadge = $('countBadge');
+            const resetBtn = $('resetFilterBtn');
+            const editOpenBtn = $('editOpenBtn');
+            const overlay = $('overlay');
+            const expandCard = $('expandCard');
+            const expandContent = $('expandContent');
+            const expandAvatar = $('expandAvatar');
+            const expandName = $('expandName');
+            const expandRole = $('expandRole');
+            const expandBio = $('expandBio');
+            const expandTags = $('expandTags');
+            const expandSocial = $('expandSocial');
+            const expandEditBtn = $('expandEditBtn');
+            const closeBtn = $('closeOverlayBtn');
+
+            const editModal = $('editModal');
+            const editModalClose = $('editModalClose');
+            const editStepVerify = $('editStepVerify');
+            const editStepForm = $('editStepForm');
+            const verifyNameInput = $('verifyNameInput');
+            const verifySubmitBtn = $('verifySubmitBtn');
+            const verifyError = $('verifyError');
+            const editTargetName = $('editTargetName');
+            const efName = $('efName');
+            const efGeneration = $('efGeneration');
+            const efRole = $('efRole');
+            const efAvatar = $('efAvatar');
+            const efBio = $('efBio');
+            const efTags = $('efTags');
+            const efSocialRows = $('efSocialRows');
+            const efAddSocial = $('efAddSocial');
+            const editBackBtn = $('editBackBtn');
+            const editSubmitBtn = $('editSubmitBtn');
+            const editSubmitError = $('editSubmitError');
+
+            const memberModal = $('memberModal');
+            const memberModalTitle = $('memberModalTitle');
+            const memberModalTip = $('memberModalTip');
+            const memberModalClose = $('memberModalClose');
+            const memberCancelBtn = $('memberCancelBtn');
+            const memberSaveBtn = $('memberSaveBtn');
+            const mfRealName = $('mfRealName');
+            const mfRealNameHint = $('mfRealNameHint');
+            const mfName = $('mfName');
+            const mfGeneration = $('mfGeneration');
+            const mfRole = $('mfRole');
+            const mfAvatar = $('mfAvatar');
+            const mfBio = $('mfBio');
+            const mfTags = $('mfTags');
+            const mfSocialRows = $('mfSocialRows');
+            const mfAddSocial = $('mfAddSocial');
+            const memberFormError = $('memberFormError');
+
+            const adminLoginView = $('adminLoginView');
+            const adminPanelView = $('adminPanelView');
+            const adminPasswordInput = $('adminPasswordInput');
+            const adminLoginBtn = $('adminLoginBtn');
+            const adminLoginError = $('adminLoginError');
+            const adminTabsEl = $('adminTabs');
+            const adminListEl = $('adminList');
+            const adminLogoutBtn = $('adminLogoutBtn');
+
+            const toastEl = $('toastEl');
+
+            /* ============================================================
+               toast
+               ============================================================ */
+            let toastTimer = null;
+            function toast(msg, type) {
+                toastEl.textContent = msg;
+                toastEl.className = 'toast show' + (type ? ' ' + type : '');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3200);
+            }
+
+            /* ============================================================
+               视口 / 动画几何
+               ============================================================ */
+            function getViewport() {
+                const vv = window.visualViewport;
+                if (vv) return { w: vv.width, h: vv.height, ox: vv.offsetLeft, oy: vv.offsetTop };
+                return { w: window.innerWidth, h: window.innerHeight, ox: 0, oy: 0 };
+            }
+
+            function computeTargetRect() {
+                const vp = getViewport();
+                const isMobile = vp.w <= 700;
+                const margin = isMobile ? 20 : 40;
+                const maxW = isMobile ? 400 : 420;
+                const maxH = isMobile ? 520 : 560;
+                const w = Math.max(200, Math.min(maxW, vp.w - margin * 2));
+                const h = Math.max(240, Math.min(maxH, vp.h - margin * 2));
+                return {
+                    left: vp.ox + (vp.w - w) / 2,
+                    top: vp.oy + (vp.h - h) / 2,
+                    width: w,
+                    height: h
+                };
+            }
+
+            function setCardRect(rect) {
+                expandCard.style.left = rect.left + 'px';
+                expandCard.style.top = rect.top + 'px';
+                expandCard.style.width = rect.width + 'px';
+                expandCard.style.height = rect.height + 'px';
+            }
+
+            function getCollapsedPadTop(thumbEl, thumbRect) {
+                const av = thumbEl.querySelector('.thumb-avatar');
+                if (!av) return Math.max(8, (thumbRect.height - 110) / 2);
+                const ar = av.getBoundingClientRect();
+                return ar.top - thumbRect.top - 1;
+            }
+
+            /* ===== 滚动锁（计数式，可叠加） ===== */
+            let scrollLockCount = 0;
+            function lockScroll() {
+                scrollLockCount++;
+                if (scrollLockCount === 1) {
+                    document.documentElement.style.overflow = 'hidden';
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+            function unlockScroll() {
+                scrollLockCount = Math.max(0, scrollLockCount - 1);
+                if (scrollLockCount === 0) {
+                    document.documentElement.style.overflow = '';
+                    document.body.style.overflow = '';
+                }
+            }
+
+            /* ============================================================
+               数据工具
+               ============================================================ */
+            function getAllTags() {
+                const tagSet = new Set();
+                members.forEach(m => (m.tags || []).forEach(t => tagSet.add(t)));
+                return Array.from(tagSet).sort();
+            }
+            function groupByGeneration(list) {
+                const groups = {};
+                list.forEach(m => {
+                    const gen = m.generation || '未知';
+                    if (!groups[gen]) groups[gen] = [];
+                    groups[gen].push(m);
+                });
+                return groups;
+            }
+            function getMemberById(id) {
+                return members.find(m => m.id === id);
+            }
+            function normalizeUrl(url) {
+                if (!url) return '#';
+                if (/^(https?:)?\/\//i.test(url) || /^(mailto|tel):/i.test(url)) return url;
+                return 'https://' + url;
+            }
+
+            /* ============================================================
+               前台渲染
+               ============================================================ */
+            async function loadMembers() {
+                timelineEl.innerHTML = '<div class="state-box"><div class="spinner"></div><p>正在加载成员数据…</p></div>';
+                countBadge.textContent = '…';
+                try {
+                    members = await apiFetch('/members');
+                    renderFilters();
+                    renderTimeline();
+                } catch (err) {
+                    members = [];
+                    countBadge.textContent = '—';
+                    timelineEl.innerHTML =
+                        '<div class="state-box"><p>成员数据加载失败：' + esc(err.message) + '</p>' +
+                        '<button class="reset-btn" id="retryLoadBtn">重新加载</button></div>';
+                    const btn = $('retryLoadBtn');
+                    if (btn) btn.addEventListener('click', loadMembers);
+                }
+            }
+
+            function renderFilters() {
+                const tags = getAllTags();
+                const filterList = ['全部', ...tags];
+                let html = '';
+                filterList.forEach(label => {
+                    const activeClass = label === activeFilter ? 'active' : '';
+                    html += '<button class="filter-btn ' + activeClass + '" data-filter="' + esc(label) + '">' + esc(label) + '</button>';
+                });
+                filterBarEl.innerHTML = html;
+                filterBarEl.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        if (isExpanded) closeExpand();
+                        activeFilter = this.dataset.filter;
+                        renderFilters();
+                        renderTimeline();
+                    });
+                });
+            }
+
+            function renderTimeline() {
+                if (!members.length) {
+                    countBadge.textContent = '0 位成员';
+                    timelineEl.innerHTML = '<div class="empty-state"><p>暂无成员数据</p></div>';
+                    return;
+                }
+                let filtered = members;
+                if (activeFilter !== '全部') {
+                    filtered = members.filter(m => (m.tags || []).includes(activeFilter));
+                }
+                countBadge.textContent = filtered.length + ' 位成员';
+                const groups = groupByGeneration(filtered);
+                const generations = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+                if (generations.length === 0) {
+                    timelineEl.innerHTML = '<div class="empty-state"><p>✧ 没有成员匹配 “' + esc(activeFilter) + '” 标签</p></div>';
+                    return;
+                }
+                let html = '';
+                generations.forEach(gen => {
+                    const list = groups[gen];
+                    let cardsHtml = '';
+                    list.forEach(m => {
+                        const avatarContent = m.avatar
+                            ? '<img src="' + esc(m.avatar) + '" alt="' + esc(m.name) + '" loading="lazy" />'
+                            : esc(String(m.name || '?').charAt(0));
+                        cardsHtml +=
+                            '<div class="card-thumb" data-id="' + m.id + '">' +
+                            '<div class="thumb-avatar">' + avatarContent + '</div>' +
+                            '<div class="thumb-name">' + esc(m.name) + '</div>' +
+                            '</div>';
+                    });
+                    html +=
+                        '<div class="timeline-item" data-generation="' + esc(gen) + '">' +
+                        '<div class="generation-header">' +
+                        '<span class="generation-title">' + esc(gen) + ' 届</span>' +
+                        '<span class="generation-count">' + list.length + ' 人</span>' +
+                        '</div>' +
+                        '<div class="card-grid">' + cardsHtml + '</div>' +
+                        '</div>';
+                });
+                timelineEl.innerHTML = html;
+                timelineEl.querySelectorAll('.card-thumb').forEach(el => {
+                    el.addEventListener('click', function () {
+                        const id = parseInt(this.dataset.id, 10);
+                        if (isExpanded && currentMemberId === id) { closeExpand(); return; }
+                        openExpand(id, this);
+                    });
+                });
+            }
+
+            function fillExpandCard(member) {
+                const avatarContent = member.avatar
+                    ? '<img src="' + esc(member.avatar) + '" alt="' + esc(member.name) + '" />'
+                    : esc(String(member.name || '?').charAt(0));
+                expandAvatar.innerHTML = avatarContent;
+                expandName.textContent = member.name;
+                expandRole.textContent = member.role || '成员';
+                expandBio.textContent = member.bio || '这位成员很神秘，什么都没有留下。';
+
+                expandTags.innerHTML = '';
+                if (member.tags && member.tags.length) {
+                    member.tags.forEach(tag => {
+                        const span = document.createElement('span');
+                        span.className = 'tag';
+                        span.textContent = tag;
+                        expandTags.appendChild(span);
+                    });
+                } else {
+                    expandTags.innerHTML = '<span style="color:#9aa6b5;font-size:13px;">暂无标签</span>';
+                }
+
+                expandSocial.innerHTML = '';
+                const socials = Array.isArray(member.social) ? member.social.filter(s => s && (s.name || s.url)) : [];
+                if (socials.length) {
+                    socials.forEach(s => {
+                        const a = document.createElement('a');
+                        a.className = 'social-link';
+                        a.textContent = s.name || s.url;
+                        a.href = normalizeUrl(s.url);
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        expandSocial.appendChild(a);
+                    });
+                } else {
+                    const span = document.createElement('span');
+                    span.className = 'social-empty';
+                    span.textContent = '暂无社交链接';
+                    expandSocial.appendChild(span);
+                }
+            }
+
+            /* ============================================================
+               展开卡片动画
+               ============================================================ */
+            function openExpand(id, thumbEl) {
+                if (expandAnimating) return;
+                const member = getMemberById(id);
+                if (!member) return;
+
+                if (isExpanded) {
+                    if (currentMemberId === id) { closeExpand(); return; }
+                    closeExpand(() => openExpand(id, thumbEl));
+                    return;
+                }
+
+                const seq = ++animSeq;
+                currentMemberId = id;
+                expandAnimating = true;
+                fillExpandCard(member);
+
+                const start = thumbEl.getBoundingClientRect();
+                const padTop = getCollapsedPadTop(thumbEl, start);
+
+                expandCard.style.transition = 'none';
+                expandContent.style.transition = 'none';
+                expandCard.classList.remove('show');
+                expandCard.style.setProperty('--pad-top', padTop + 'px');
+                setCardRect(start);
+                expandCard.style.overflow = 'hidden';
+                expandCard.style.pointerEvents = 'none';
+                expandCard.style.visibility = 'visible';
+
+                thumbEl.classList.add('expanded');
+                overlay.classList.add('active');
+                lockScroll();
+
+                void expandCard.offsetHeight;
+                expandCard.style.transition = '';
+                expandContent.style.transition = '';
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        if (seq !== animSeq) return;
+                        setCardRect(computeTargetRect());
+                        expandCard.classList.add('show');
+                    });
+                });
+
+                isExpanded = true;
+                expandCard._thumbEl = thumbEl;
+                expandCard._thumbRect = { left: start.left, top: start.top, width: start.width, height: start.height };
+
+                clearTimeout(animTimer);
+                animTimer = setTimeout(() => {
+                    if (seq !== animSeq) return;
+                    expandCard.style.pointerEvents = 'auto';
+                    expandCard.style.overflow = '';
+                    expandAnimating = false;
+                }, ANIM_WAIT);
+            }
+
+            function closeExpand(onDone) {
+                if (!isExpanded || expandAnimating) return;
+                const seq = ++animSeq;
+                expandAnimating = true;
+
+                let targetThumb = expandCard._thumbEl;
+                if (!targetThumb || !document.contains(targetThumb)) {
+                    targetThumb = document.querySelector('.card-thumb[data-id="' + currentMemberId + '"]');
+                }
+                let targetRect, padTop = 26;
+                if (targetThumb && document.contains(targetThumb)) {
+                    const r = targetThumb.getBoundingClientRect();
+                    targetRect = { left: r.left, top: r.top, width: r.width, height: r.height };
+                    padTop = getCollapsedPadTop(targetThumb, r);
+                } else {
+                    targetRect = expandCard._thumbRect || computeTargetRect();
+                }
+
+                expandCard.style.setProperty('--pad-top', padTop + 'px');
+                expandCard.classList.remove('show');
+                expandCard.style.pointerEvents = 'none';
+                expandCard.style.overflow = 'hidden';
+                setCardRect(targetRect);
+                overlay.classList.remove('active');
+
+                clearTimeout(animTimer);
+                animTimer = setTimeout(() => {
+                    if (seq !== animSeq) return;
+                    unlockScroll();
+                    isExpanded = false;
+                    currentMemberId = null;
+                    if (targetThumb && document.contains(targetThumb)) {
+                        targetThumb.classList.remove('expanded');
+                    }
+                    expandCard.style.visibility = 'hidden';
+                    expandCard.style.pointerEvents = '';
+                    expandCard.style.overflow = '';
+                    expandCard._thumbEl = null;
+                    expandAnimating = false;
+                    if (typeof onDone === 'function') onDone();
+                }, ANIM_WAIT);
+            }
+
+            function forceCollapse() {
+                animSeq++;
+                clearTimeout(animTimer);
+                overlay.classList.remove('active');
+                if (expandCard._thumbEl && document.contains(expandCard._thumbEl)) {
+                    expandCard._thumbEl.classList.remove('expanded');
+                }
+                expandCard.classList.remove('show');
+                expandCard.style.visibility = 'hidden';
+                expandCard.style.pointerEvents = '';
+                expandCard.style.overflow = '';
+                expandCard._thumbEl = null;
+                if (isExpanded) unlockScroll();
+                isExpanded = false;
+                currentMemberId = null;
+                expandAnimating = false;
+            }
+
+            let viewportTimer = null;
+            function scheduleReposition() {
+                if (!isExpanded || expandAnimating) return;
+                clearTimeout(viewportTimer);
+                viewportTimer = setTimeout(() => {
+                    if (!isExpanded || expandAnimating) return;
+                    setCardRect(computeTargetRect());
+                }, 150);
+            }
+            window.addEventListener('resize', scheduleReposition);
+            window.addEventListener('orientationchange', scheduleReposition);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', scheduleReposition);
+            }
+
+            /* ============================================================
+               共享：社交链接动态行
+               ============================================================ */
+            function addSocialRowTo(container, name, url) {
+                const row = document.createElement('div');
+                row.className = 'social-row';
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.placeholder = '名称（如 哔哩哔哩）';
+                nameInput.value = name;
+                const urlInput = document.createElement('input');
+                urlInput.type = 'text';
+                urlInput.placeholder = 'https://…';
+                urlInput.value = url;
+                const del = document.createElement('button');
+                del.type = 'button';
+                del.className = 'sr-del';
+                del.textContent = '✕';
+                del.addEventListener('click', () => row.remove());
+                row.appendChild(nameInput);
+                row.appendChild(urlInput);
+                row.appendChild(del);
+                container.appendChild(row);
+            }
+
+            /* ============================================================
+               前台 · 编辑资料模态（走审核）
+               ============================================================ */
+            function openEditModal(targetMemberId) {
+                editCtx = { targetMemberId: targetMemberId || null, memberId: null, verifyToken: null, original: null };
+                editStepVerify.hidden = false;
+                editStepForm.hidden = true;
+                verifyError.textContent = '';
+                verifySubmitBtn.disabled = false;
+                verifySubmitBtn.textContent = '验 证';
+                editModal.classList.add('active');
+                lockScroll();
+                editModalOpen = true;
+                setTimeout(() => verifyNameInput.focus(), 120);
+            }
+
+            function closeEditModal() {
+                if (!editModalOpen) return;
+                editModal.classList.remove('active');
+                unlockScroll();
+                editModalOpen = false;
+            }
+
+            async function handleVerifySubmit() {
+                const realName = verifyNameInput.value.trim();
+                verifyError.textContent = '';
+                if (!realName) { verifyError.textContent = '请输入真实姓名'; return; }
+
+                verifySubmitBtn.disabled = true;
+                verifySubmitBtn.textContent = '验证中…';
+                try {
+                    const data = await apiFetch('/verify-name', {
+                        method: 'POST',
+                        body: { realName, memberId: editCtx.targetMemberId || undefined }
+                    });
+                    editCtx.memberId = data.memberId;
+                    editCtx.verifyToken = data.verifyToken;
+                    editCtx.original = data.member;
+                    editTargetName.textContent = data.member.name;
+                    fillEditForm(data.member);
+                    editStepVerify.hidden = true;
+                    editStepForm.hidden = false;
+                } catch (err) {
+                    verifyError.textContent = err.message;
+                } finally {
+                    verifySubmitBtn.disabled = false;
+                    verifySubmitBtn.textContent = '验 证';
+                }
+            }
+
+            function fillEditForm(member) {
+                efName.value = member.name || '';
+                efGeneration.value = member.generation || '';
+                efRole.value = member.role || '';
+                efAvatar.value = member.avatar || '';
+                efBio.value = member.bio || '';
+                efTags.value = (member.tags || []).join(', ');
+                efSocialRows.innerHTML = '';
+                const socials = Array.isArray(member.social) ? member.social : [];
+                socials.forEach(s => addSocialRowTo(efSocialRows, s.name || '', s.url || ''));
+                editSubmitError.textContent = '';
+            }
+
+            function collectFormValues() {
+                const social = [];
+                efSocialRows.querySelectorAll('.social-row').forEach(row => {
+                    const inputs = row.querySelectorAll('input');
+                    const n = inputs[0].value.trim();
+                    const u = inputs[1].value.trim();
+                    if (n || u) social.push({ name: n, url: u });
+                });
+                const tags = efTags.value.split(/[,，、\s]+/).map(t => t.trim()).filter(Boolean);
+                return {
+                    name: efName.value.trim(),
+                    generation: efGeneration.value.trim(),
+                    role: efRole.value.trim(),
+                    bio: efBio.value.trim(),
+                    avatar: efAvatar.value.trim(),
+                    tags,
+                    social
+                };
+            }
+
+            function buildChanges() {
+                const vals = collectFormValues();
+                const o = editCtx.original || {};
+                const changes = {};
+                ['name', 'generation', 'role', 'bio', 'avatar'].forEach(k => {
+                    if (vals[k] !== (o[k] || '')) changes[k] = vals[k];
+                });
+                if (vals.tags.join('\u0001') !== (o.tags || []).join('\u0001')) changes.tags = vals.tags;
+                const normSocial = arr => (arr || []).map(s => s.name + '\u0001' + s.url).join('\u0002');
+                if (normSocial(vals.social) !== normSocial(o.social)) changes.social = vals.social;
+                return changes;
+            }
+
+            async function handleEditSubmit() {
+                const changes = buildChanges();
+                editSubmitError.textContent = '';
+                if (!Object.keys(changes).length) {
+                    editSubmitError.textContent = '没有修改任何内容';
+                    return;
+                }
+                editSubmitBtn.disabled = true;
+                editSubmitBtn.textContent = '提交中…';
+                try {
+                    await apiFetch('/submissions', {
+                        method: 'POST',
+                        body: { verifyToken: editCtx.verifyToken, changes }
+                    });
+                    closeEditModal();
+                    toast('已提交审核，请等待管理员处理', 'success');
+                } catch (err) {
+                    editSubmitError.textContent = err.message;
+                    if (err.code === 'TOKEN_INVALID' || err.code === 'TOKEN_EXPIRED') {
+                        editStepForm.hidden = true;
+                        editStepVerify.hidden = false;
+                        verifyError.textContent = err.message;
+                    }
+                } finally {
+                    editSubmitBtn.disabled = false;
+                    editSubmitBtn.textContent = '提交审核';
+                }
+            }
+
+            /* ============================================================
+               后台 · 成员管理模态（立即生效）
+               ============================================================ */
+            function openMemberModal(mode, member) {
+                memberModalMode = mode;
+                memberModalEditId = member ? member.id : null;
+                memberModalTitle.textContent = mode === 'add' ? '添加成员' : '编辑成员';
+
+                // ★ 只进不出字段：编辑时无法回显，永远从空开始
+                mfRealName.value = '';
+                if (mode === 'add') {
+                    memberModalTip.innerHTML = '添加后<b>立即生效</b>（管理员操作无需审核）。真实姓名仅存储哈希值，用于成员自助修改资料时的身份验证。';
+                    mfRealName.placeholder = '如：张三';
+                    mfRealNameHint.textContent = '只进不出：服务端只存哈希，任何接口（含后台）都不会返回该值';
+                } else {
+                    memberModalTip.innerHTML = '正在编辑 <b>' + esc(member.name) + '</b>（#' + member.id + '），保存后<b>立即生效</b>。';
+                    mfRealName.placeholder = '留空表示不修改';
+                    mfRealNameHint.textContent = '已登记的真实姓名无法查看；留空保持不变，填写则覆盖';
+                }
+
+                mfName.value = member ? (member.name || '') : '';
+                mfGeneration.value = member ? (member.generation || '') : '';
+                mfRole.value = member ? (member.role || '') : '';
+                mfAvatar.value = member ? (member.avatar || '') : '';
+                mfBio.value = member ? (member.bio || '') : '';
+                mfTags.value = member ? (member.tags || []).join(', ') : '';
+                mfSocialRows.innerHTML = '';
+                if (member && Array.isArray(member.social)) {
+                    member.social.forEach(s => addSocialRowTo(mfSocialRows, s.name || '', s.url || ''));
+                }
+                memberFormError.textContent = '';
+                memberModal.classList.add('active');
+                lockScroll();
+                memberModalOpen = true;
+                setTimeout(() => mfRealName.focus(), 120);
+            }
+
+            function closeMemberModal() {
+                if (!memberModalOpen) return;
+                memberModal.classList.remove('active');
+                unlockScroll();
+                memberModalOpen = false;
+            }
+
+            function collectAdminFormValues() {
+                const social = [];
+                mfSocialRows.querySelectorAll('.social-row').forEach(row => {
+                    const inputs = row.querySelectorAll('input');
+                    const n = inputs[0].value.trim();
+                    const u = inputs[1].value.trim();
+                    if (n || u) social.push({ name: n, url: u });
+                });
+                const tags = mfTags.value.split(/[,，、\s]+/).map(t => t.trim()).filter(Boolean);
+                return {
+                    realName: mfRealName.value.trim(),
+                    name: mfName.value.trim(),
+                    generation: mfGeneration.value.trim(),
+                    role: mfRole.value.trim(),
+                    avatar: mfAvatar.value.trim(),
+                    bio: mfBio.value.trim(),
+                    tags,
+                    social
+                };
+            }
+
+            async function handleMemberSave() {
+                const vals = collectAdminFormValues();
+                memberFormError.textContent = '';
+                if (memberModalMode === 'add' && !vals.realName) {
+                    memberFormError.textContent = '真实姓名不能为空';
+                    return;
+                }
+                if (!vals.name) { memberFormError.textContent = '昵称不能为空'; return; }
+                if (!vals.generation) { memberFormError.textContent = '届不能为空'; return; }
+
+                memberSaveBtn.disabled = true;
+                memberSaveBtn.textContent = '保存中…';
+                try {
+                    if (memberModalMode === 'add') {
+                        await apiFetch('/admin/members', { method: 'POST', body: vals, token: adminToken });
+                        toast('成员已添加', 'success');
+                    } else {
+                        // ★ 编辑时留空 = 不修改 realName（不发送该字段）
+                        const body = { ...vals };
+                        if (!body.realName) delete body.realName;
+                        await apiFetch('/admin/members/' + memberModalEditId, { method: 'PUT', body, token: adminToken });
+                        toast('修改已保存', 'success');
+                    }
+                    closeMemberModal();
+                    mainNeedsReload = true;
+                    loadAdminMembers();
+                } catch (err) {
+                    memberFormError.textContent = err.message;
+                    if (isAuthErr(err)) {
+                        adminLogout(true);
+                        toast(err.message, 'error');
+                        closeMemberModal();
+                    }
+                } finally {
+                    memberSaveBtn.disabled = false;
+                    memberSaveBtn.textContent = '保 存';
+                }
+            }
+
+            /* ============================================================
+               后台 · 审核 / 成员管理渲染
+               ============================================================ */
+            const FIELD_LABELS = {
+                name: '昵称', generation: '届', role: '职位',
+                bio: '简介', tags: '标签', social: '社交链接', avatar: '头像'
+            };
+            function formatVal(k, v) {
+                if (v == null || v === '') return '（空）';
+                if (k === 'tags') return (v || []).join('、');
+                if (k === 'social') return (v || []).map(s => s.name + ': ' + s.url).join('\n');
+                return String(v);
+            }
+            function isAuthErr(err) {
+                return err && (err.status === 401 || /TOKEN|PASSWORD/i.test(err.code || ''));
+            }
+
+            function renderAdmin() {
+                const logged = !!adminToken;
+                adminLoginView.hidden = logged;
+                adminPanelView.hidden = !logged;
+                if (logged) loadAdminList();
+            }
+
+            async function doAdminLogin() {
+                const pw = adminPasswordInput.value;
+                adminLoginError.textContent = '';
+                if (!pw) { adminLoginError.textContent = '请输入密码'; return; }
+                adminLoginBtn.disabled = true;
+                adminLoginBtn.textContent = '验证中…';
+                try {
+                    const data = await apiFetch('/admin/login', { method: 'POST', body: { password: pw } });
+                    adminToken = data.adminToken;
+                    sessionStorage.setItem('adminToken', adminToken);
+                    adminPasswordInput.value = '';
+                    renderAdmin();
+                } catch (err) {
+                    adminLoginError.textContent = err.message;
+                } finally {
+                    adminLoginBtn.disabled = false;
+                    adminLoginBtn.textContent = '进入后台';
+                }
+            }
+
+            function adminLogout(silent) {
+                adminToken = null;
+                sessionStorage.removeItem('adminToken');
+                if (!silent) toast('已退出后台');
+                renderAdmin();
+            }
+
+            async function loadAdminList() {
+                if (adminTab === 'members') return loadAdminMembers();
+                adminListEl.innerHTML = '<div class="state-box"><div class="spinner"></div><p>加载中…</p></div>';
+                try {
+                    const list = await apiFetch('/admin/submissions?status=' + adminTab, { token: adminToken });
+                    renderSubmissionList(list);
+                } catch (err) {
+                    if (isAuthErr(err)) {
+                        adminLogout(true);
+                        toast(err.message, 'error');
+                        return;
+                    }
+                    adminListEl.innerHTML = '<div class="state-box"><p>' + esc(err.message) + '</p></div>';
+                }
+            }
+
+            function renderSubmissionList(list) {
+                if (!list.length) {
+                    const tips = { pending: '暂无待审核的提交', approved: '暂无已通过的记录', rejected: '暂无已驳回的记录' };
+                    adminListEl.innerHTML = '<div class="empty-state"><p>' + tips[adminTab] + '</p></div>';
+                    return;
+                }
+                adminListEl.innerHTML = list.map(sub => {
+                    const rows = Object.keys(sub.changes).map(k =>
+                        '<tr>' +
+                        '<td>' + esc(FIELD_LABELS[k] || k) + '</td>' +
+                        '<td class="diff-old">' + esc(formatVal(k, sub.oldData ? sub.oldData[k] : undefined)) + '</td>' +
+                        '<td class="diff-new">' + esc(formatVal(k, sub.changes[k])) + '</td>' +
+                        '</tr>'
+                    ).join('');
+
+                    const reasonHtml = (sub.status === 'rejected' && sub.reason)
+                        ? '<div class="sub-reason">驳回理由：' + esc(sub.reason) + '</div>'
+                        : '';
+
+                    let actionsHtml;
+                    if (sub.status === 'pending') {
+                        actionsHtml =
+                            '<div class="sub-actions">' +
+                            '<button class="btn-approve" data-action="approve">✓ 通过</button>' +
+                            '<button class="btn-reject" data-action="show-reject">✕ 驳回</button>' +
+                            '</div>' +
+                            '<div class="rej-box" hidden>' +
+                            '<input type="text" class="rej-input" placeholder="驳回理由（必填）" />' +
+                            '<button class="btn-reject" data-action="reject">确认驳回</button>' +
+                            '<button class="btn-ghost" data-action="cancel-reject">取消</button>' +
+                            '</div>';
+                    } else {
+                        actionsHtml = '<div class="sub-actions"><span class="badge-status st-' + sub.status + '">' +
+                            (sub.status === 'approved' ? '已通过' : '已驳回') +
+                            '</span><span style="font-size:12px;color:#9aa6b5;">' + esc(fmtTime(sub.reviewedAt)) + '</span></div>';
+                    }
+
+                    // ★ 不显示提交人真实姓名（只进不出），
+                    //   以「已实名验证」徽章代替
+                    return '<div class="sub-card" data-sub-id="' + sub.id + '">' +
+                        '<div class="sub-meta">' +
+                        '<span>目标成员：<b>' + esc(sub.memberName) + '</b>（ID ' + sub.memberId + '）</span>' +
+                        '<span>提交时间：' + esc(fmtTime(sub.createdAt)) + '</span>' +
+                        (sub.verifiedByRealName ? '<span class="verify-chip">✓ 已实名验证</span>' : '') +
+                        '</div>' +
+                        '<table class="diff-table">' +
+                        '<thead><tr><th style="width:80px">字段</th><th>当前值</th><th>修改为</th></tr></thead>' +
+                        '<tbody>' + rows + '</tbody>' +
+                        '</table>' +
+                        reasonHtml +
+                        actionsHtml +
+                        '</div>';
+                }).join('');
+            }
+
+            /* ===== 后台 · 成员管理列表 ===== */
+            async function loadAdminMembers() {
+                adminListEl.innerHTML = '<div class="state-box"><div class="spinner"></div><p>加载中…</p></div>';
+                try {
+                    adminMembersCache = await apiFetch('/admin/members', { token: adminToken });
+                    renderAdminMembers(adminMembersCache);
+                } catch (err) {
+                    if (isAuthErr(err)) {
+                        adminLogout(true);
+                        toast(err.message, 'error');
+                        return;
+                    }
+                    adminMembersCache = [];
+                    adminListEl.innerHTML = '<div class="state-box"><p>' + esc(err.message) + '</p></div>';
+                }
+            }
+
+            function renderAdminMembers(list) {
+                const sorted = list.slice().sort((a, b) =>
+                    String(b.generation || '').localeCompare(String(a.generation || '')) || (a.id - b.id)
+                );
+                let html = '<div class="ma-toolbar">' +
+                    '<span class="ma-count">共 ' + list.length + ' 位成员</span>' +
+                    '<button class="btn-primary" data-action="m-add">＋ 添加成员</button>' +
+                    '</div>';
+                if (!list.length) {
+                    html += '<div class="empty-state"><p>暂无成员，点击右上角「添加成员」创建</p></div>';
+                } else {
+                    sorted.forEach(m => {
+                        const avatarContent = m.avatar
+                            ? '<img src="' + esc(m.avatar) + '" alt="" loading="lazy" />'
+                            : esc(String(m.name || '?').charAt(0));
+                        html +=
+                            '<div class="member-admin-card" data-member-id="' + m.id + '">' +
+                            '<div class="ma-avatar">' + avatarContent + '</div>' +
+                            '<div class="ma-info">' +
+                            '<div class="ma-name">' + esc(m.name) + '<span class="ma-id">#' + m.id + '</span></div>' +
+                            '<div class="ma-sub">' + esc(m.generation) + ' 届 · ' + esc(m.role || '未设置职位') + '</div>' +
+                            '</div>' +
+                            '<div class="ma-actions">' +
+                            '<button class="btn-ghost" data-action="m-edit" data-id="' + m.id + '">编辑</button>' +
+                            '<button class="btn-reject" data-action="m-del" data-id="' + m.id + '">删除</button>' +
+                            '</div>' +
+                            '<div class="ma-del-box" hidden>' +
+                            '<span class="ma-del-text">确定删除 <b>' + esc(m.name) + '</b> ？此操作不可恢复，其待审核提交将自动作废。</span>' +
+                            '<button class="btn-reject" data-action="m-del-confirm" data-id="' + m.id + '">确认删除</button>' +
+                            '<button class="btn-ghost" data-action="m-del-cancel">取消</button>' +
+                            '</div>' +
+                            '</div>';
+                    });
+                }
+                adminListEl.innerHTML = html;
+            }
+
+            async function handleMemberDelete(id) {
+                try {
+                    await apiFetch('/admin/members/' + id, { method: 'DELETE', token: adminToken });
+                    toast('成员已删除', 'success');
+                    mainNeedsReload = true;
+                    loadAdminMembers();
+                } catch (err) {
+                    if (isAuthErr(err)) { adminLogout(true); toast(err.message, 'error'); return; }
+                    toast(err.message, 'error');
+                }
+            }
+
+            /* ============================================================
+               路由
+               ============================================================ */
+            function route() {
+                const isAdmin = location.hash === '#/admin' || location.hash === '#admin';
+                viewMain.hidden = isAdmin;
+                viewAdmin.hidden = !isAdmin;
+                forceCollapse();
+                closeEditModal();
+                closeMemberModal();
+                if (isAdmin) {
+                    renderAdmin();
+                } else if (mainNeedsReload) {
+                    mainNeedsReload = false;
+                    loadMembers();
+                }
+            }
+
+            /* ============================================================
+               事件绑定
+               ============================================================ */
+            resetBtn.addEventListener('click', function () {
+                if (isExpanded) closeExpand();
+                activeFilter = '全部';
+                renderFilters();
+                renderTimeline();
+            });
+
+            overlay.addEventListener('click', function (e) {
+                if (e.target === this) closeExpand();
+            });
+            overlay.addEventListener('touchmove', function (e) {
+                if (e.target === this) e.preventDefault();
+            }, { passive: false });
+
+            closeBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                closeExpand();
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key !== 'Escape') return;
+                if (memberModal.classList.contains('active')) { closeMemberModal(); return; }
+                if (editModal.classList.contains('active')) { closeEditModal(); return; }
+                if (isExpanded) closeExpand();
+            });
+
+            /* --- 前台编辑模态 --- */
+            editOpenBtn.addEventListener('click', () => openEditModal(null));
+            expandEditBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (currentMemberId != null) openEditModal(currentMemberId);
+            });
+            editModal.addEventListener('click', function (e) {
+                if (e.target === this) closeEditModal();
+            });
+            editModalClose.addEventListener('click', closeEditModal);
+            verifySubmitBtn.addEventListener('click', handleVerifySubmit);
+            verifyNameInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') handleVerifySubmit();
+            });
+            efAddSocial.addEventListener('click', () => addSocialRowTo(efSocialRows, '', ''));
+            editBackBtn.addEventListener('click', () => {
+                editStepForm.hidden = true;
+                editStepVerify.hidden = false;
+                verifyError.textContent = '';
+            });
+            editSubmitBtn.addEventListener('click', handleEditSubmit);
+
+            /* --- 后台成员模态 --- */
+            memberModal.addEventListener('click', function (e) {
+                if (e.target === this) closeMemberModal();
+            });
+            memberModalClose.addEventListener('click', closeMemberModal);
+            memberCancelBtn.addEventListener('click', closeMemberModal);
+            mfAddSocial.addEventListener('click', () => addSocialRowTo(mfSocialRows, '', ''));
+            memberSaveBtn.addEventListener('click', handleMemberSave);
+
+            /* --- 后台登录 --- */
+            adminLoginBtn.addEventListener('click', doAdminLogin);
+            adminPasswordInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') doAdminLogin();
+            });
+            adminLogoutBtn.addEventListener('click', () => adminLogout(false));
+
+            /* --- 后台 tab 切换 --- */
+            adminTabsEl.addEventListener('click', function (e) {
+                const btn = e.target.closest('[data-tab]');
+                if (!btn) return;
+                adminTab = btn.dataset.tab;
+                adminTabsEl.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+                loadAdminList();
+            });
+
+            /* --- 后台列表（审核 + 成员管理）统一事件委托 --- */
+            adminListEl.addEventListener('click', async function (e) {
+                const btn = e.target.closest('[data-action]');
+                if (!btn) return;
+                const action = btn.dataset.action;
+
+                /* 审核动作 */
+                if (action === 'show-reject' || action === 'cancel-reject' || action === 'approve' || action === 'reject') {
+                    const card = btn.closest('[data-sub-id]');
+                    if (!card) return;
+                    const id = Number(card.dataset.subId);
+
+                    if (action === 'show-reject') {
+                        const box = card.querySelector('.rej-box');
+                        if (box) { box.hidden = false; box.querySelector('.rej-input').focus(); }
+                    } else if (action === 'cancel-reject') {
+                        const box = card.querySelector('.rej-box');
+                        if (box) box.hidden = true;
+                    } else if (action === 'approve') {
+                        btn.disabled = true;
+                        try {
+                            await apiFetch('/admin/submissions/' + id + '/approve', { method: 'POST', token: adminToken });
+                            toast('已通过，资料生效', 'success');
+                            mainNeedsReload = true;
+                            loadAdminList();
+                        } catch (err) {
+                            btn.disabled = false;
+                            if (isAuthErr(err)) { adminLogout(true); toast(err.message, 'error'); return; }
+                            toast(err.message, 'error');
+                        }
+                    } else if (action === 'reject') {
+                        const input = card.querySelector('.rej-input');
+                        const reason = input ? input.value.trim() : '';
+                        if (!reason) { toast('请填写驳回理由', 'error'); return; }
+                        btn.disabled = true;
+                        try {
+                            await apiFetch('/admin/submissions/' + id + '/reject', {
+                                method: 'POST',
+                                body: { reason },
+                                token: adminToken
+                            });
+                            toast('已驳回', 'success');
+                            loadAdminList();
+                        } catch (err) {
+                            btn.disabled = false;
+                            if (isAuthErr(err)) { adminLogout(true); toast(err.message, 'error'); return; }
+                            toast(err.message, 'error');
+                        }
+                    }
+                    return;
+                }
+
+                /* 成员管理动作 */
+                if (action === 'm-add') {
+                    openMemberModal('add');
+                } else if (action === 'm-edit') {
+                    const id = Number(btn.dataset.id);
+                    const m = adminMembersCache.find(x => x.id === id);
+                    if (m) openMemberModal('edit', m);
+                } else if (action === 'm-del') {
+                    const card = btn.closest('[data-member-id]');
+                    const box = card && card.querySelector('.ma-del-box');
+                    if (box) box.hidden = false;
+                } else if (action === 'm-del-cancel') {
+                    const card = btn.closest('[data-member-id]');
+                    const box = card && card.querySelector('.ma-del-box');
+                    if (box) box.hidden = true;
+                } else if (action === 'm-del-confirm') {
+                    const id = Number(btn.dataset.id);
+                    btn.disabled = true;
+                    await handleMemberDelete(id);
+                }
+            });
+
+            /* ============================================================
+               初始化
+               ============================================================ */
+            window.addEventListener('hashchange', route);
+            route();
+            loadMembers();
+
+            window.__members = () => members;
+        })();
+    </script>
+</body>
+
+</html>
