@@ -2105,6 +2105,7 @@
             let adminToken = sessionStorage.getItem('adminToken') || null;
             let adminTab = 'pending';
             let adminMembersCache = [];
+            let adminListReqSeq = 0;
             let mainNeedsReload = false;
 
             const $ = id => document.getElementById(id);
@@ -2855,12 +2856,15 @@
             }
 
             async function loadAdminList() {
-                if (adminTab === 'members') return loadAdminMembers();
+                const seq = ++adminListReqSeq;
+                if (adminTab === 'members') return loadAdminMembers(seq);
                 adminListEl.innerHTML = '<div class="state-box"><div class="spinner"></div><p>加载中…</p></div>';
                 try {
                     const list = await apiFetch('/admin/submissions?status=' + adminTab, { token: adminToken });
+                    if (seq !== adminListReqSeq) return;
                     renderSubmissionList(list);
                 } catch (err) {
+                    if (seq !== adminListReqSeq) return;
                     if (isAuthErr(err)) {
                         adminLogout(true);
                         toast(err.message, 'error');
@@ -2926,12 +2930,15 @@
             }
 
             /* ===== 后台 · 成员管理列表 ===== */
-            async function loadAdminMembers() {
+            async function loadAdminMembers(seq) {
+                if (seq === undefined) seq = ++adminListReqSeq;
                 adminListEl.innerHTML = '<div class="state-box"><div class="spinner"></div><p>加载中…</p></div>';
                 try {
                     adminMembersCache = await apiFetch('/admin/members', { token: adminToken });
+                    if (seq !== adminListReqSeq) return;
                     renderAdminMembers(adminMembersCache);
                 } catch (err) {
+                    if (seq !== adminListReqSeq) return;
                     if (isAuthErr(err)) {
                         adminLogout(true);
                         toast(err.message, 'error');
