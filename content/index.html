@@ -2435,18 +2435,24 @@
                 expandAnimating = true;
                 fillExpandCard(member);
 
-                // 起点：切换/打断时取卡片当前实时位置，否则从缩略图位置展开
-                const start = (switching || wasAnimating)
-                    ? expandCard.getBoundingClientRect()
-                    : thumbEl.getBoundingClientRect();
+                // 若卡片已完全展开（show），直接在原位交换内容，避免向“上一个元素”偏移；
+                // 否则从被点击卡片自身的缩略图位置展开，保证动画归属于当前点击的卡片。
+                const alreadyOpen = expandCard.classList.contains('show');
+                const liveRect = {
+                    left: parseFloat(getComputedStyle(expandCard).left),
+                    top: parseFloat(getComputedStyle(expandCard).top),
+                    width: parseFloat(getComputedStyle(expandCard).width),
+                    height: parseFloat(getComputedStyle(expandCard).height)
+                };
+                const start = alreadyOpen ? liveRect : thumbEl.getBoundingClientRect();
                 const padTop = getCollapsedPadTop(thumbEl, start);
 
                 expandCard.style.transition = 'none';
                 expandContent.style.transition = 'none';
-                if (!switching) expandCard.classList.remove('show');
+                if (!alreadyOpen) expandCard.classList.remove('show');
                 expandCard.style.setProperty('--pad-top', padTop + 'px');
                 setCardRect(start);
-                // 强制回流：以上一次动画被终止、当前实时位置作为新基准提交，
+                // 强制回流：终止上一次动画的计算，以当前实时位置作为新基准提交，
                 // 避免新动画一开始先跳向上一次动画的目标位置
                 expandCard.getBoundingClientRect();
                 expandCard.style.overflow = 'hidden';
@@ -2467,7 +2473,7 @@
                     requestAnimationFrame(() => {
                         if (seq !== animSeq) return;
                         setCardRect(computeTargetRect());
-                        if (!switching) expandCard.classList.add('show');
+                        if (!alreadyOpen) expandCard.classList.add('show');
                     });
                 });
 
