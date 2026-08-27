@@ -850,6 +850,28 @@
             color: var(--text-strong);
         }
 
+        .batch-result {
+            margin: 4px 0 14px;
+            border: 1px solid var(--border);
+            background: var(--surface-3);
+            padding: 12px 14px;
+        }
+        .batch-summary {
+            font-size: 14px;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .batch-summary b {
+            color: var(--accent, #4a8cff);
+        }
+        .batch-detail {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 12.5px;
+            color: var(--text-soft);
+            line-height: 1.7;
+        }
+
         .form-row {
             margin-bottom: 14px;
         }
@@ -1687,6 +1709,32 @@
         </div>
     </div>
 
+    <!-- 批量导入成员模态（后台） -->
+    <div class="modal" id="batchModal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <span>批量导入成员</span>
+                <button class="modal-close" id="batchModalClose">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="step-tip">每行一位成员，字段用逗号分隔，可省略首行表头。标签用 <b>|</b> 分隔。</p>
+                <p class="step-tip" style="margin-top:-6px;color:#9aa6b5;font-size:13px;">
+                    格式：真实姓名,昵称,届别,职位,简介,头像URL,标签1|标签2
+                </p>
+                <div class="form-row">
+                    <textarea id="batchInput" rows="8"
+                        placeholder="张三,御坂美琴,2025,社长,简介…,https://…,动漫|游戏&#10;李四,立华奏,2025,副社长,简介…,,绘画|音乐"></textarea>
+                </div>
+                <div class="form-error" id="batchError"></div>
+                <div id="batchResult" class="batch-result" hidden></div>
+                <div class="form-actions">
+                    <button class="btn-ghost" id="batchCancelBtn">取 消</button>
+                    <button class="btn-primary" id="batchImportBtn">导 入</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- toast -->
     <div class="toast" id="toastEl"></div>
 
@@ -1990,6 +2038,41 @@
                     return { id: member.id };
                 }
 
+                // POST /admin/members/batch —— 批量导入（与后端 §4.9b 同款校验）
+                if (method === 'POST' && p === '/admin/members/batch') {
+                    requireMockAdmin(token);
+                    const items = body && Array.isArray(body.members) ? body.members : null;
+                    if (!items || items.length === 0) throw apiErr(400, 'FIELD_MISSING', '缺少 members 数组或为空');
+                    if (items.length > 200) throw apiErr(400, 'FIELD_INVALID', '单次批量导入最多 200 条');
+                    const created = [], skipped = [], errors = [], seen = new Set();
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i] || {};
+                        const idx = i + 1;
+                        const realName = String(item.realName || '').trim();
+                        const name = String(item.name || '').trim();
+                        const gen = String(item.generation || '').trim();
+                        if (!realName) { errors.push({ index: idx, code: 'FIELD_MISSING', message: '缺少必填字段 realName' }); continue; }
+                        if (!name || !gen) { errors.push({ index: idx, code: 'FIELD_MISSING', message: 'name / generation 必填' }); continue; }
+                        if (realNameTaken(realName, null)) { skipped.push({ index: idx, realName, reason: 'REALNAME_EXISTS' }); continue; }
+                        if (seen.has(realName)) { skipped.push({ index: idx, realName, reason: 'DUPLICATE_IN_BATCH' }); continue; }
+                        seen.add(realName);
+                        const member = {
+                            id: mockDb.nextMemberId++,
+                            realName, // 仅 mock 内存持有，对外永不返回
+                            name,
+                            generation: gen,
+                            role: item.role || '',
+                            bio: item.bio || '',
+                            avatar: item.avatar || '',
+                            tags: Array.isArray(item.tags) ? item.tags : [],
+                            social: Array.isArray(item.social) ? item.social : []
+                        };
+                        mockDb.members.push(member);
+                        created.push({ index: idx, id: member.id, name });
+                    }
+                    return { created, skipped, errors, total: items.length };
+                }
+
                 // PUT /admin/members/:id —— 编辑（realName 非空才覆盖，无清除语义）
                 if (mm && method === 'PUT') {
                     requireMockAdmin(token);
@@ -2167,6 +2250,15 @@
             const mfSocialRows = $('mfSocialRows');
             const mfAddSocial = $('mfAddSocial');
             const memberFormError = $('memberFormError');
+
+            const batchModal = $('batchModal');
+            const batchModalClose = $('batchModalClose');
+            const batchInput = $('batchInput');
+            const batchError = $('batchError');
+            const batchResult = $('batchResult');
+            const batchCancelBtn = $('batchCancelBtn');
+            const batchImportBtn = $('batchImportBtn');
+            let batchModalOpen = false;
 
             const adminLoginView = $('adminLoginView');
             const adminPanelView = $('adminPanelView');
@@ -2788,6 +2880,112 @@
                 memberModalOpen = false;
             }
 
+            /* 后台 · 批量导入成员模态 */
+            function openBatchModal() {
+                if (batchModalOpen) return;
+                batchInput.value = '';
+                batchError.textContent = '';
+                batchResult.hidden = true;
+                batchResult.innerHTML = '';
+                batchModal.classList.add('active');
+                lockScroll();
+                batchModalOpen = true;
+                setTimeout(() => batchInput.focus(), 120);
+            }
+
+            function closeBatchModal() {
+                if (!batchModalOpen) return;
+                batchModal.classList.remove('active');
+                unlockScroll();
+                batchModalOpen = false;
+            }
+
+            /* 解析批量输入：每行一位成员，逗号分隔 7 个字段，可选表头行 */
+            function parseBatchInput(text) {
+                const lines = String(text || '')
+                    .split(/\r?\n/)
+                    .map(l => l.trim())
+                    .filter(Boolean);
+                const members = [];
+                const errors = [];
+                let skippedHeader = false;
+                lines.forEach((line, i) => {
+                    const idx = i + 1;
+                    if (!skippedHeader && /(^真实姓名)|(^姓名)|(^realname)/i.test(line)) {
+                        skippedHeader = true;
+                        return;
+                    }
+                    const parts = line.split(',').map(s => s.trim());
+                    const realName = parts[0] || '';
+                    const name = parts[1] || '';
+                    const generation = parts[2] || '';
+                    const role = parts[3] || '';
+                    const bio = parts[4] || '';
+                    const avatar = parts[5] || '';
+                    const tags = parts[6]
+                        ? parts[6].split(/[|｜]/).map(t => t.trim()).filter(Boolean)
+                        : [];
+                    if (!realName || !name || !generation) {
+                        errors.push('第 ' + idx + ' 行字段不足（需 真实姓名,昵称,届别…）');
+                        return;
+                    }
+                    members.push({ realName, name, generation, role, bio, avatar, tags, social: [] });
+                });
+                return { members, errors };
+            }
+
+            async function handleBatchImport() {
+                batchError.textContent = '';
+                batchResult.hidden = true;
+                const { members, errors } = parseBatchInput(batchInput.value);
+                if (errors.length) {
+                    batchError.textContent = '解析失败：' + errors.join('；');
+                    return;
+                }
+                if (!members.length) {
+                    batchError.textContent = '没有可导入的内容';
+                    return;
+                }
+                batchImportBtn.disabled = true;
+                try {
+                    const data = await apiFetch('/admin/members/batch', {
+                        method: 'POST',
+                        body: { members },
+                        token: adminToken
+                    });
+                    const created = (data.created || []).length;
+                    const skipped = (data.skipped || []).length;
+                    const errs = (data.errors || []).length;
+                    let html = '<div class="batch-summary">成功导入 <b>' + created +
+                        '</b> 位，跳过 <b>' + skipped + '</b> 位，错误 <b>' + errs +
+                        '</b> 位（共 ' + (data.total || members.length) + ' 行）</div>';
+                    const details = [];
+                    (data.skipped || []).forEach(s =>
+                        details.push('跳过 #' + s.index + ' ' + esc(s.realName) + '：' + s.reason));
+                    (data.errors || []).forEach(e =>
+                        details.push('错误 #' + e.index + '：' + esc(e.message)));
+                    if (details.length) {
+                        html += '<ul class="batch-detail">' +
+                            details.map(d => '<li>' + esc(d) + '</li>').join('') + '</ul>';
+                    }
+                    batchResult.innerHTML = html;
+                    batchResult.hidden = false;
+                    if (created > 0) {
+                        mainNeedsReload = true;
+                        loadAdminMembers();
+                    }
+                    if (skipped === 0 && errs === 0) {
+                        toast('批量导入成功：' + created + ' 位成员', 'success');
+                        closeBatchModal();
+                    }
+                } catch (err) {
+                    if (isAuthErr(err)) { adminLogout(true); toast(err.message, 'error'); return; }
+                    batchError.textContent = err.message;
+                } finally {
+                    batchImportBtn.disabled = false;
+                }
+            }
+
             function collectAdminFormValues() {
                 const social = [];
                 mfSocialRows.querySelectorAll('.social-row').forEach(row => {
@@ -3003,6 +3201,7 @@
                 let html = '<div class="ma-toolbar">' +
                     '<span class="ma-count">共 ' + list.length + ' 位成员</span>' +
                     '<button class="btn-primary" data-action="m-add">＋ 添加成员</button>' +
+                    '<button class="btn-ghost" data-action="m-batch">⇪ 批量导入</button>' +
                     '</div>';
                 if (!list.length) {
                     html += '<div class="empty-state"><p>暂无成员，点击右上角「添加成员」创建</p></div>';
@@ -3166,6 +3365,17 @@
             mfAddSocial.addEventListener('click', () => addSocialRowTo(mfSocialRows, '', ''));
             memberSaveBtn.addEventListener('click', handleMemberSave);
 
+            /* --- 后台批量导入模态 --- */
+            batchModal.addEventListener('mousedown', function (e) {
+                batchModal._downOnSelf = (e.target === this);
+            });
+            batchModal.addEventListener('mouseup', function (e) {
+                if (batchModal._downOnSelf && e.target === this) closeBatchModal();
+            });
+            batchModalClose.addEventListener('click', closeBatchModal);
+            batchCancelBtn.addEventListener('click', closeBatchModal);
+            batchImportBtn.addEventListener('click', handleBatchImport);
+
             /* --- 后台登录 --- */
             adminLoginBtn.addEventListener('click', doAdminLogin);
             adminPasswordInput.addEventListener('keydown', function (e) {
@@ -3237,6 +3447,8 @@
                 /* 成员管理动作 */
                 if (action === 'm-add') {
                     openMemberModal('add');
+                } else if (action === 'm-batch') {
+                    openBatchModal();
                 } else if (action === 'm-edit') {
                     const id = Number(btn.dataset.id);
                     const m = adminMembersCache.find(x => x.id === id);

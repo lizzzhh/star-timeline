@@ -480,6 +480,38 @@ realName 是**只写**字段，全系统唯一入口是管理端成员管理：
 
 ## **错误：** `401 ADMIN_TOKEN_INVALID` / `400 FIELD_MISSING` / `409 REALNAME_EXISTS`
 
+### 4.9b POST /api/admin/members/batch — 批量导入成员
+
+- **权限：** 管理员
+- **生效方式：** 立即生效，不进入审核流
+- **说明：** 与 §4.9 同款校验（realName 必填 + 唯一；name/generation 必填；其余字段类型校验）。单批最多 200 条；批内重复 realName 标记 `DUPLICATE_IN_BATCH`，与已有成员重复标记 `REALNAME_EXISTS`，字段非法进入 `errors`。成功项通过 `env.DB.batch()` 原子插入。
+  **请求 Body：**
+
+```json
+{
+  "members": [
+    { "realName": "张三", "name": "御坂美琴", "generation": "2025", "role": "", "bio": "", "avatar": "", "tags": ["动漫"], "social": [] },
+    { "realName": "李四", "name": "立华奏", "generation": "2025" }
+  ]
+}
+```
+
+> 成功 200：
+
+```json
+{
+  "ok": true,
+  "data": {
+    "created": [{ "index": 1, "id": 13, "name": "御坂美琴" }],
+    "skipped": [{ "index": 2, "realName": "李四", "reason": "REALNAME_EXISTS" }],
+    "errors": [],
+    "total": 2
+  }
+}
+```
+
+## **错误：** `401 ADMIN_TOKEN_INVALID` / `400 FIELD_MISSING`（members 为空）/ `400 FIELD_INVALID`（超过 200 条）
+
 ### 4.10 PUT /api/admin/members/{id} — 编辑成员
 
 - **权限：** 管理员

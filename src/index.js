@@ -586,6 +586,92 @@ async function createMember(env, request) {
   return OK({ id: r.meta.last_row_id });
 }
 
+/* 4.9b POST /api/admin/members/batch —— 批量导入学生（§4.9 同款校验） */
+async function createMembersBatch(env, request) {
+  const body = await readJson(request);
+  const items = Array.isArray(body && body.members) ? body.members : null;
+  if (!items || items.length === 0)
+    throw new ApiError("FIELD_MISSING", "缺少 members 数组或为空", 400);
+  if (items.length > 200)
+    throw new ApiError("FIELD_INVALID", "单次批量导入最多 200 条", 400);
+
+  const created = [];
+  const skipped = [];
+  const errors = [];
+  const seenLookup = new Set();
+  const inserts = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i] || {};
+    const idx = i + 1;
+    const realName = String(item.realName ?? "").trim();
+    if (!realName) {
+      errors.push({ index: idx, code: "FIELD_MISSING", message: "缺少必填字段 realName" });
+      continue;
+    }
+    const name = String(item.name ?? "").trim();
+    const generation = String(item.generation ?? "").trim();
+    if (!name || !generation) {
+      errors.push({ index: idx, code: "FIELD_MISSING", message: "name / generation 必填" });
+      continue;
+    }
+    try {
+      validateFieldValues(item);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        errors.push({ index: idx, code: e.code, message: e.message });
+        continue;
+      }
+      throw e;
+    }
+
+    const lookup = await sha256Lookup(env, realName);
+    if (seenLookup.has(lookup)) {
+      skipped.push({ index: idx, realName, reason: "DUPLICATE_IN_BATCH" });
+      continue;
+    }
+    const exists = await env.DB.prepare(
+      "SELECT id FROM members WHERE real_name_lookup=?",
+    )
+      .bind(lookup)
+      .first();
+    if (exists) {
+      skipped.push({ index: idx, realName, reason: "REALNAME_EXISTS" });
+      continue;
+    }
+
+    seenLookup.add(lookup);
+    inserts.push({
+      idx,
+      name,
+      stmt: env.DB.prepare(
+        `INSERT INTO members
+           (real_name_lookup, real_name_verify, name, generation, role, bio, avatar, tags, social, created_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      ).bind(
+        lookup,
+        await pbkdf2Hash(realName),
+        name,
+        generation,
+        item.role ?? "",
+        item.bio ?? "",
+        normUrl(item.avatar ?? ""),
+        Array.isArray(item.tags) ? JSON.stringify(item.tags) : "[]",
+        JSON.stringify(normalizeSocial(item.social)),
+        nowISO(),
+      ),
+    });
+  }
+
+  let rows = [];
+  if (inserts.length) rows = await env.DB.batch(inserts.map((o) => o.stmt));
+  inserts.forEach((o, i) => {
+    created.push({ index: o.idx, id: rows[i].meta.last_row_id, name: o.name });
+  });
+
+  return OK({ created, skipped, errors, total: items.length });
+}
+
 /* 4.10 PUT /api/admin/members/{id} —— 部分更新：缺省=不改；tags/social 整体替换（§3.2） */
 async function updateMember(env, request, id) {
   const body = await readJson(request);
@@ -725,6 +811,8 @@ export default {
             return await listMembersAdmin(env);
           if (seg.length === 3 && method === "POST")
             return await createMember(env, request);
+          if (seg.length === 4 && seg[3] === "batch" && method === "POST")
+            return await createMembersBatch(env, request);
           if (seg.length === 4 && method === "PUT")
             return await updateMember(env, request, Number(seg[3]));
           if (seg.length === 4 && method === "DELETE")
