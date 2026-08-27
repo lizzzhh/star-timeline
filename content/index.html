@@ -303,6 +303,20 @@
         .timeline {
             position: relative;
             padding-left: 32px;
+            transition: opacity 0.15s var(--ease);
+        }
+
+        .timeline.tl-leaving {
+            opacity: 0;
+        }
+
+        .view {
+            transition: opacity 0.16s var(--ease);
+        }
+
+        .view.view-enter,
+        .view.view-leave {
+            opacity: 0;
         }
 
         .timeline::before {
@@ -1458,7 +1472,7 @@
 <body>
     <div class="app">
         <!-- ================= 前台主视图 ================= -->
-        <div id="viewMain">
+        <div id="viewMain" class="view">
             <div class="hero">
                 <div class="logo-circle"><span>社</span></div>
                 <div class="hero-title">
@@ -1486,7 +1500,7 @@
         </div>
 
         <!-- ================= 后台视图（#/admin） ================= -->
-        <div id="viewAdmin" hidden>
+        <div id="viewAdmin" class="view" hidden>
             <div class="hero">
                 <div class="logo-circle"><span>审</span></div>
                 <div class="hero-title">
@@ -1504,7 +1518,7 @@
             </div>
 
             <!-- 未登录：密码验证 -->
-            <div id="adminLoginView">
+            <div id="adminLoginView" class="view">
                 <div class="admin-login">
                     <p class="admin-login-tip">请输入管理密码进入后台。</p>
                     <div class="form-row">
@@ -1517,7 +1531,7 @@
             </div>
 
             <!-- 已登录：管理面板 -->
-            <div id="adminPanelView" hidden>
+            <div id="adminPanelView" class="view" hidden>
                 <div class="toolbar">
                     <div class="filter-bar" id="adminTabs">
                         <button class="filter-btn active" data-tab="pending">待审核</button>
@@ -1683,7 +1697,7 @@
                USE_MOCK = true  ：内置 mock 后端（无需服务器即可演示）
                USE_MOCK = false ：请求真实后端（按文末 API 约定实现）
                ============================================================ */
-            const USE_MOCK = false;
+            const USE_MOCK = true;
             const API_BASE = '/api';
 
             /* Mock 凭据：后台密码 admin888
@@ -2298,7 +2312,7 @@
             function renderTimeline() {
                 if (!members.length) {
                     countBadge.textContent = '0 位成员';
-                    timelineEl.innerHTML = '<div class="empty-state"><p>暂无成员数据</p></div>';
+                    paintTimeline('<div class="empty-state"><p>暂无成员数据</p></div>');
                     return;
                 }
                 let filtered = members;
@@ -2309,7 +2323,7 @@
                 const groups = groupByGeneration(filtered);
                 const generations = Object.keys(groups).sort((a, b) => b.localeCompare(a));
                 if (generations.length === 0) {
-                    timelineEl.innerHTML = '<div class="empty-state"><p>✧ 没有成员匹配 “' + esc(activeFilter) + '” 标签</p></div>';
+                    paintTimeline('<div class="empty-state"><p>✧ 没有成员匹配 “' + esc(activeFilter) + '” 标签</p></div>');
                     return;
                 }
                 let html = '';
@@ -2335,14 +2349,24 @@
                         '<div class="card-grid">' + cardsHtml + '</div>' +
                         '</div>';
                 });
-                timelineEl.innerHTML = html;
-                timelineEl.querySelectorAll('.card-thumb').forEach(el => {
-                    el.addEventListener('click', function () {
-                        const id = parseInt(this.dataset.id, 10);
-                        if (isExpanded && currentMemberId === id) { closeExpand(); return; }
-                        openExpand(id, this);
+                paintTimeline(html);
+            }
+
+            function paintTimeline(html) {
+                if (timelineEl._paintTimer) clearTimeout(timelineEl._paintTimer);
+                timelineEl.classList.add('tl-leaving');
+                timelineEl._paintTimer = setTimeout(function () {
+                    timelineEl.innerHTML = html;
+                    timelineEl.querySelectorAll('.card-thumb').forEach(function (el) {
+                        el.addEventListener('click', function () {
+                            const id = parseInt(this.dataset.id, 10);
+                            if (isExpanded && currentMemberId === id) { closeExpand(); return; }
+                            openExpand(id, this);
+                        });
                     });
-                });
+                    void timelineEl.offsetWidth;
+                    timelineEl.classList.remove('tl-leaving');
+                }, 150);
             }
 
             function fillExpandCard(member) {
@@ -2795,8 +2819,11 @@
 
             function renderAdmin() {
                 const logged = !!adminToken;
-                adminLoginView.hidden = logged;
-                adminPanelView.hidden = !logged;
+                if (!logged && adminLoginView.hidden) {
+                    hideView(adminPanelView, function () { showView(adminLoginView); });
+                } else if (logged && adminPanelView.hidden) {
+                    hideView(adminLoginView, function () { showView(adminPanelView); });
+                }
                 if (logged) loadAdminList();
             }
 
@@ -2967,13 +2994,47 @@
             /* ============================================================
                路由
                ============================================================ */
+            function showView(el) {
+                if (el._hideTimer) { clearTimeout(el._hideTimer); el._hideTimer = null; }
+                if (el._hideFinish) { el.removeEventListener('transitionend', el._hideFinish); el._hideFinish = null; }
+                if (!el.hidden && !el.classList.contains('view-leave')) return;
+                el.hidden = false;
+                el.classList.add('view-enter');
+                el.classList.remove('view-leave');
+                void el.offsetWidth;
+                el.classList.remove('view-enter');
+            }
+
+            function hideView(el, onDone) {
+                if (el.hidden) { if (onDone) onDone(); return; }
+                el.classList.add('view-leave');
+                el.classList.remove('view-enter');
+                let done = false;
+                const finish = function () {
+                    if (done) return; done = true;
+                    if (el._hideTimer) { clearTimeout(el._hideTimer); el._hideTimer = null; }
+                    el.hidden = true;
+                    el.classList.remove('view-leave');
+                    el.removeEventListener('transitionend', el._hideFinish);
+                    el._hideFinish = null;
+                    if (onDone) onDone();
+                };
+                const onEnd = function (e) {
+                    if (e.target === el && e.propertyName === 'opacity') finish();
+                };
+                el._hideFinish = onEnd;
+                el.addEventListener('transitionend', onEnd);
+                el._hideTimer = setTimeout(finish, 260);
+            }
+
             function route() {
                 const isAdmin = location.hash === '#/admin' || location.hash === '#admin';
-                viewMain.hidden = isAdmin;
-                viewAdmin.hidden = !isAdmin;
+                const show = isAdmin ? viewAdmin : viewMain;
+                const hide = isAdmin ? viewMain : viewAdmin;
                 forceCollapse();
                 closeEditModal();
                 closeMemberModal();
+                hideView(hide, function () { showView(show); });
                 if (isAdmin) {
                     renderAdmin();
                 } else if (mainNeedsReload) {
